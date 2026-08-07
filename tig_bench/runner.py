@@ -43,7 +43,6 @@ def run_dataset(
     snapshot_times_seconds: list[float] | None = None,
     resume: bool = False,
     cache_dir: Path | str | None = None,
-    source: Path | str | None = None,
 ) -> Path:
     if sum((algorithm_selector is not None, local is not None, baseline)) != 1:
         raise RunError("Select exactly one of --algorithm, --local, or --baseline")
@@ -70,7 +69,7 @@ def run_dataset(
     dataset_sha256 = sha256_hex(dataset_path.read_bytes())
     instances = _validated_instances(dataset_path, dataset_manifest)
 
-    source_manager = SourceManager(cache_dir=cache_dir, source=source)
+    source_manager = SourceManager(cache_dir=cache_dir)
     snapshot = source_manager.ensure(monorepo_commit)
     catalog = AlgorithmCatalog(snapshot.checkout)
     algorithm: Algorithm | None = None

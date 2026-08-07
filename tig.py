@@ -71,7 +71,7 @@ def setup_logging(log_level: str) -> None:
 
 
 def _source_manager(args: argparse.Namespace) -> SourceManager:
-    return SourceManager(cache_dir=args.cache_dir, source=args.source)
+    return SourceManager(cache_dir=args.cache_dir)
 
 
 def source_status(args: argparse.Namespace) -> None:
@@ -131,7 +131,6 @@ def generate_exact(args: argparse.Namespace) -> None:
         metadata=parse_hyperparameters(args.metadata, label="Dataset metadata"),
         output=args.out,
         cache_dir=args.cache_dir,
-        source=args.source,
     )
     print(f"Generated dataset manifest: {manifest}")
 
@@ -145,7 +144,6 @@ def import_academic(args: argparse.Namespace) -> None:
         metadata=parse_hyperparameters(args.metadata, label="Dataset metadata"),
         output=args.out,
         cache_dir=args.cache_dir,
-        source=args.source,
     )
     print(f"Imported dataset manifest: {manifest}")
 
@@ -168,21 +166,15 @@ def run_exact(args: argparse.Namespace) -> None:
         snapshot_times_seconds=parse_snapshot_times(args.snapshot_times),
         resume=args.resume,
         cache_dir=args.cache_dir,
-        source=args.source,
     )
     print(f"Run results: {output_dir / 'results.jsonl'}")
 
 
-def _add_source_options(parser: argparse.ArgumentParser) -> None:
+def _add_cache_option(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--cache-dir",
         default=None,
         help="Advanced: override the managed cache directory",
-    )
-    parser.add_argument(
-        "--source",
-        default=None,
-        help="Advanced: initialize from a Git URL or local repository",
     )
 
 
@@ -215,13 +207,13 @@ def build_parser() -> argparse.ArgumentParser:
     status_parser = source_commands.add_parser(
         "status", help="Show the pinned monorepo revision"
     )
-    _add_source_options(status_parser)
+    _add_cache_option(status_parser)
     status_parser.add_argument("--json", action="store_true", help="Print JSON")
     _set_handler(status_parser, source_status)
     sync_parser = source_commands.add_parser(
         "sync", help="Initialize or explicitly update to current monorepo main"
     )
-    _add_source_options(sync_parser)
+    _add_cache_option(sync_parser)
     sync_parser.add_argument("--json", action="store_true", help="Print JSON")
     _set_handler(sync_parser, source_sync)
 
@@ -234,7 +226,7 @@ def build_parser() -> argparse.ArgumentParser:
     list_parser = algorithm_commands.add_parser(
         "list", help="List supported CPU algorithms"
     )
-    _add_source_options(list_parser)
+    _add_cache_option(list_parser)
     list_parser.add_argument(
         "--challenge",
         choices=CHALLENGE_CHOICES,
@@ -277,7 +269,7 @@ def build_parser() -> argparse.ArgumentParser:
     generate_parser.add_argument(
         "--metadata", help="Dataset metadata as a JSON object or JSON file"
     )
-    _add_source_options(generate_parser)
+    _add_cache_option(generate_parser)
     _set_handler(generate_parser, generate_exact)
 
     import_parser = commands.add_parser(
@@ -303,7 +295,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--metadata", help="Dataset metadata as a JSON object or JSON file"
     )
     import_parser.add_argument("--out", default=None, help="Output dataset directory")
-    _add_source_options(import_parser)
+    _add_cache_option(import_parser)
     _set_handler(import_parser, import_academic)
 
     run_parser = commands.add_parser(
@@ -362,7 +354,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument(
         "--resume", action="store_true", help="Resume an interrupted matching run"
     )
-    _add_source_options(run_parser)
+    _add_cache_option(run_parser)
     _set_handler(run_parser, run_exact)
 
     return parser

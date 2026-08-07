@@ -7,6 +7,7 @@ import unittest
 from tig_bench.dataset import generate_dataset
 from tig_bench.importers import import_dataset
 from tig_bench.runner import run_dataset
+from tig_bench.source import SourceManager
 
 
 MONOREPO = os.environ.get("TIG_INTEGRATION_MONOREPO")
@@ -23,7 +24,9 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             if configured_cache
             else self.root / "cache"
         )
-        self.source = Path(MONOREPO).resolve()
+        SourceManager._from_test_repository(
+            self.cache, Path(MONOREPO).resolve()
+        ).ensure()
         self.repository = Path(__file__).resolve().parent.parent
 
     def tearDown(self) -> None:
@@ -39,7 +42,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             metadata={"purpose": "integration"},
             output=self.root / "generated-first",
             cache_dir=self.cache,
-            source=self.source,
         )
         second_dataset = generate_dataset(
             challenge="c001",
@@ -50,7 +52,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             metadata={"purpose": "integration"},
             output=self.root / "generated-second",
             cache_dir=self.cache,
-            source=self.source,
         )
         first_manifest = json.loads(first_dataset.read_text(encoding="utf-8"))
         second_manifest = json.loads(second_dataset.read_text(encoding="utf-8"))
@@ -72,7 +73,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             repetitions=2,
             output=self.root / "named-run",
             cache_dir=self.cache,
-            source=self.source,
         )
         named_results = self.read_results(named_run)
         self.assertEqual(len(named_results), 4)
@@ -99,7 +99,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             output=named_run,
             resume=True,
             cache_dir=self.cache,
-            source=self.source,
         )
         self.assertEqual(resumed_run, named_run)
         self.assertEqual(
@@ -118,7 +117,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             repetitions=2,
             output=self.root / "alias-run",
             cache_dir=self.cache,
-            source=self.source,
         )
         alias_results = self.read_results(alias_run)
         self.assertEqual(
@@ -141,7 +139,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             metadata={"source_url": "https://example.invalid/tiny"},
             output=self.root / "academic",
             cache_dir=self.cache,
-            source=self.source,
         )
         local_run = run_dataset(
             dataset=academic_dataset,
@@ -149,7 +146,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             timeout_seconds=5,
             output=self.root / "local-run",
             cache_dir=self.cache,
-            source=self.source,
         )
         local_result = self.read_results(local_run)[0]
         self.assertEqual(local_result["status"], "solution")
@@ -166,7 +162,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             format_name="solomon-vrptw",
             output=self.root / "routing",
             cache_dir=self.cache,
-            source=self.source,
         )
         baseline_run = run_dataset(
             dataset=routing_dataset,
@@ -175,7 +170,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             save_solution=True,
             output=self.root / "baseline-run",
             cache_dir=self.cache,
-            source=self.source,
         )
         baseline_result = self.read_results(baseline_run)[0]
         self.assertEqual(baseline_result["status"], "solution")
@@ -190,7 +184,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             format_name="tig-qkp",
             output=self.root / "knapsack",
             cache_dir=self.cache,
-            source=self.source,
         )
         knapsack_result = self.run_baseline(knapsack_dataset, "knapsack-run")
         self.assertEqual(
@@ -203,7 +196,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             format_name="brandimarte-fjsp",
             output=self.root / "job-scheduling",
             cache_dir=self.cache,
-            source=self.source,
         )
         scheduling_result = self.run_baseline(
             scheduling_dataset, "job-scheduling-run"
@@ -216,7 +208,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             timeout_seconds=5,
             output=self.root / "job-scheduling-delayed-run",
             cache_dir=self.cache,
-            source=self.source,
         )
         delayed_result = self.read_results(delayed_run)[0]
         self.assertEqual(delayed_result["status"], "solution")
@@ -232,7 +223,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             seed="integration",
             output=self.root / "energy",
             cache_dir=self.cache,
-            source=self.source,
         )
         energy_result = self.run_baseline(energy_dataset, "energy-run")
         self.assertEqual(energy_result["objective"]["direction"], "maximize")
@@ -245,7 +235,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             timeout_seconds=5,
             output=self.root / output_name,
             cache_dir=self.cache,
-            source=self.source,
         )
         result = self.read_results(run)[0]
         self.assertEqual(result["status"], "solution")
@@ -262,7 +251,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             timeout_seconds=5,
             output=self.root / "local-empty-parameters",
             cache_dir=self.cache,
-            source=self.source,
         )
         explicit_empty = self.read_results(explicit_empty_run)[0]
         self.assertEqual(explicit_empty["status"], "solution")
@@ -282,7 +270,6 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
                 timeout_seconds=5,
                 output=self.root / f"local-{mode}",
                 cache_dir=self.cache,
-                source=self.source,
             )
             result = self.read_results(run)[0]
             self.assertEqual(result["status"], status)

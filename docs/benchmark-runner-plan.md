@@ -106,14 +106,14 @@ CUDA support is an implementation phase, not a reason to couple the CPU runner t
 
 ### Clean source snapshots
 
-The runner resolves a Git commit on `main`, creates or reuses an isolated clean checkout in its cache, and compiles only that snapshot. On first use this happens automatically from `https://github.com/tig-foundation/tig-monorepo`. Its working tree is never compiled and users do not need to clone or prepare the monorepo themselves. An advanced `--source` option can initialize a separate cache from a local Git repository; only its committed Git objects are used, never its working tree.
+The runner resolves a Git commit on `main`, creates or reuses an isolated clean checkout in its cache, and compiles only that snapshot. On first use this happens automatically from the official `https://github.com/tig-foundation/tig-monorepo`. Users do not need to clone or prepare the monorepo themselves. Version 1 does not expose arbitrary repository or fork selection.
 
-Normal benchmark execution must not silently fetch a newer commit. After automatic first-use initialization, an explicit source-sync operation updates the cached view of `main`; every dataset, build, and run records the resolved commit SHA. Resume requires the original SHA. An advanced `--source` option is available for development. Dataset runs already resolve their recorded commit rather than current `main`; user-facing arbitrary revision selection can therefore be added later without changing the pipeline.
+Normal benchmark execution must not silently fetch a newer commit. After automatic first-use initialization, an explicit source-sync operation updates the cached view of official `main`; every dataset, build, and run records the resolved commit SHA. Resume requires the original SHA. Dataset runs already resolve their recorded commit rather than current `main`; historical revision selection can therefore be added later without changing the pipeline.
 
 Suggested commands:
 
 ```text
-python3 tig.py source sync [--source PATH_OR_URL]
+python3 tig.py source sync
 python3 tig.py algorithms list [--challenge c002]
 ```
 

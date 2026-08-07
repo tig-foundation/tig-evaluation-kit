@@ -30,7 +30,6 @@ def generate_dataset(
     metadata: dict[str, Any] | None = None,
     output: Path | str | None = None,
     cache_dir: Path | str | None = None,
-    source: Path | str | None = None,
 ) -> Path:
     if metadata is not None and not isinstance(metadata, dict):
         raise DatasetError("Dataset metadata must be a JSON object")
@@ -43,7 +42,7 @@ def generate_dataset(
 
     challenge_id = normalize_challenge(challenge)
     challenge_name = CPU_CHALLENGES[challenge_id]
-    source_manager = SourceManager(cache_dir=cache_dir, source=source)
+    source_manager = SourceManager(cache_dir=cache_dir)
     snapshot = source_manager.ensure()
     helper = RustBuildManager(cache_dir).instance_helper(snapshot, challenge_id)
 

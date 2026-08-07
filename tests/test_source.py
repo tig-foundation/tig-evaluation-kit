@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 import unittest
 
-from tig_bench.source import SourceManager
+from tig_bench.source import DEFAULT_MONOREPO_URL, SourceManager
 
 
 class SourceManagerTests(unittest.TestCase):
@@ -45,7 +45,7 @@ class SourceManagerTests(unittest.TestCase):
         (module_root / f"{name}.rs").write_text("// test algorithm\n", encoding="utf-8")
 
     def test_first_use_is_clean_and_updates_only_on_sync(self) -> None:
-        manager = SourceManager(cache_dir=self.cache, source=self.remote)
+        manager = SourceManager._from_test_repository(self.cache, self.remote)
         first = manager.ensure()
         first_commit = self.git("rev-parse", "HEAD")
         self.assertEqual(first.commit, first_commit)
@@ -89,7 +89,7 @@ class SourceManagerTests(unittest.TestCase):
         )
 
     def test_dirty_managed_checkout_is_recreated(self) -> None:
-        manager = SourceManager(cache_dir=self.cache, source=self.remote)
+        manager = SourceManager._from_test_repository(self.cache, self.remote)
         snapshot = manager.ensure()
         marker = snapshot.checkout / "untracked.txt"
         marker.write_text("dirty\n", encoding="utf-8")
@@ -101,9 +101,10 @@ class SourceManagerTests(unittest.TestCase):
         self.assertEqual(repaired.checkout, snapshot.checkout)
 
     def test_status_does_not_initialize_cache(self) -> None:
-        manager = SourceManager(cache_dir=self.cache, source=self.remote)
+        manager = SourceManager(cache_dir=self.cache)
         status = manager.status()
         self.assertFalse(status["initialized"])
+        self.assertEqual(status["source"], DEFAULT_MONOREPO_URL)
         self.assertFalse(manager.mirror.exists())
 
 

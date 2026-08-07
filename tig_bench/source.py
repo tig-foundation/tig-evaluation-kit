@@ -60,21 +60,29 @@ class SourceManager:
     def __init__(
         self,
         cache_dir: Path | str | None = None,
-        source: Path | str | None = None,
     ) -> None:
         self.cache_dir = Path(cache_dir) if cache_dir else default_cache_dir()
-        self.requested_source = str(source) if source is not None else None
+        self._initial_source = DEFAULT_MONOREPO_URL
         self.source_root = self.cache_dir / "sources" / "tig-monorepo"
         self.mirror = self.source_root / "mirror.git"
         self.checkouts = self.source_root / "checkouts"
         self.state_path = self.source_root / "state.json"
+
+    @classmethod
+    def _from_test_repository(
+        cls, cache_dir: Path | str, source: Path | str
+    ) -> "SourceManager":
+        """Create a manager backed by a test fixture instead of the official repo."""
+        manager = cls(cache_dir=cache_dir)
+        manager._initial_source = str(source)
+        return manager
 
     def status(self) -> dict[str, object]:
         if not self.mirror.exists():
             return {
                 "initialized": False,
                 "cache_dir": str(self.cache_dir),
-                "source": self.requested_source or DEFAULT_MONOREPO_URL,
+                "source": self._initial_source,
             }
 
         commit = self._resolve_ref(DEFAULT_REF)
@@ -114,17 +122,8 @@ class SourceManager:
     def _sync_unlocked(self) -> SourceSnapshot:
         self.source_root.mkdir(parents=True, exist_ok=True)
         if not self.mirror.exists():
-            self._clone_mirror(self.requested_source or DEFAULT_MONOREPO_URL)
+            self._clone_mirror(self._initial_source)
         else:
-            configured_source = self._origin_url()
-            if self.requested_source and not self._same_source(
-                configured_source, self.requested_source
-            ):
-                raise SourceError(
-                    "The cache is already initialized from "
-                    f"{configured_source!r}, not {self.requested_source!r}. "
-                    "Use a different --cache-dir to select another source."
-                )
             self._git(
                 [
                     f"--git-dir={self.mirror}",
@@ -266,14 +265,6 @@ class SourceManager:
             temporary_file.write("\n")
             temporary_path = Path(temporary_file.name)
         os.replace(temporary_path, self.state_path)
-
-    @staticmethod
-    def _same_source(left: str, right: str) -> bool:
-        left_path = Path(left).expanduser()
-        right_path = Path(right).expanduser()
-        if left_path.exists() and right_path.exists():
-            return left_path.resolve() == right_path.resolve()
-        return left.rstrip("/") == right.rstrip("/")
 
     @staticmethod
     def _git(args: Sequence[str], cwd: Path | None = None) -> str:

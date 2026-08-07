@@ -23,12 +23,10 @@ python3 tig.py source sync
 python3 tig.py source status
 ```
 
-Most users do not need `--source`. It selects the Git repository used to
-initialize a managed cache, for example `--source ../tig-monorepo` when testing
-committed local monorepo changes instead of GitHub's `main`. The runner mirrors
-Git objects from that repository and builds a clean pinned checkout; it never
-compiles uncommitted files from the supplied working tree. Use a separate
-`--cache-dir` when selecting a different source repository.
+Version 1 always synchronizes from the official TIG monorepo. The runner
+mirrors its Git objects and builds a clean pinned checkout; forks and arbitrary
+source repositories cannot be selected. `--cache-dir` remains available when
+the managed source and build cache should live somewhere else.
 
 List current CPU algorithms from the pinned `main` commit:
 

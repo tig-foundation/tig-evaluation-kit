@@ -35,7 +35,6 @@ def import_dataset(
     metadata: dict[str, Any] | None = None,
     output: Path | str | None = None,
     cache_dir: Path | str | None = None,
-    source: Path | str | None = None,
 ) -> Path:
     if metadata is not None and not isinstance(metadata, dict):
         raise AcademicImportError("Dataset metadata must be a JSON object")
@@ -44,7 +43,7 @@ def import_dataset(
     if not paths:
         raise AcademicImportError("No academic instance files were found")
 
-    snapshot = SourceManager(cache_dir=cache_dir, source=source).ensure()
+    snapshot = SourceManager(cache_dir=cache_dir).ensure()
     helper = RustBuildManager(cache_dir).instance_helper(snapshot, challenge_id)
     normalized: list[dict[str, Any]] = []
     identity_inputs = []
