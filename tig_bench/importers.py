@@ -6,6 +6,7 @@ from contextlib import nullcontext
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -22,8 +23,9 @@ class AcademicImportError(RuntimeError):
     """Raised when an academic instance cannot be normalized."""
 
 
-ADAPTER_VERSION = 1
+ADAPTER_VERSION = 2
 ZERO_SEED = [0] * 32
+FORMAT_ALIASES = {"brandimarte-fjsp": "standard-fjsp"}
 
 
 def import_dataset(
@@ -39,15 +41,15 @@ def import_dataset(
     if metadata is not None and not isinstance(metadata, dict):
         raise AcademicImportError("Dataset metadata must be a JSON object")
     challenge_id = normalize_challenge(challenge)
-    paths = _collect_inputs(inputs)
-    if not paths:
+    collected_inputs = _collect_inputs(inputs)
+    if not collected_inputs:
         raise AcademicImportError("No academic instance files were found")
 
     snapshot = SourceManager(cache_dir=cache_dir).ensure()
     helper = RustBuildManager(cache_dir).instance_helper(snapshot, challenge_id)
     normalized: list[dict[str, Any]] = []
     identity_inputs = []
-    for path in paths:
+    for path, source_name in collected_inputs:
         encoded = path.read_bytes()
         source_hash = sha256_hex(encoded)
         selected_format = (
@@ -55,11 +57,13 @@ def import_dataset(
             if format_name == "auto"
             else format_name
         )
+        selected_format = FORMAT_ALIASES.get(selected_format, selected_format)
         challenge_value = parse_instance(challenge_id, selected_format, encoded)
         prepared = _prepare(helper, challenge_id, challenge_value)
         normalized.append(
             {
                 "path": path,
+                "source": source_name,
                 "source_sha256": source_hash,
                 "format": selected_format,
                 "challenge": prepared,
@@ -67,7 +71,7 @@ def import_dataset(
         )
         identity_inputs.append(
             {
-                "name": path.name,
+                "source": source_name,
                 "sha256": source_hash,
                 "format": selected_format,
             }
@@ -132,7 +136,7 @@ def import_dataset(
                 "provenance": {
                     "kind": "academic_import",
                     "monorepo_commit": snapshot.commit,
-                    "source": source_path.name,
+                    "source": item["source"],
                     "source_sha256": item["source_sha256"],
                     "adapter": {
                         "name": item["format"],
@@ -152,7 +156,7 @@ def import_dataset(
                     "id": instance_id,
                     "path": relative_path.as_posix(),
                     "sha256": sha256_hex(instance_bytes),
-                    "source": source_path.name,
+                    "source": item["source"],
                     "source_sha256": item["source_sha256"],
                     "format": item["format"],
                 }
@@ -186,7 +190,13 @@ def supported_formats(challenge: str) -> list[str]:
         "c001": ["auto", "dimacs-cnf", "canonical-json"],
         "c002": ["auto", "solomon-vrptw", "canonical-json"],
         "c003": ["auto", "tig-qkp", "canonical-json"],
-        "c007": ["auto", "brandimarte-fjsp", "classic-jsp", "canonical-json"],
+        "c007": [
+            "auto",
+            "standard-fjsp",
+            "brandimarte-fjsp",
+            "classic-jsp",
+            "canonical-json",
+        ],
         "c008": ["auto", "canonical-json"],
     }[challenge_id]
 
@@ -205,7 +215,7 @@ def detect_format(challenge_id: str, path: Path, encoded: bytes) -> str:
             return "tig-qkp"
     if challenge_id == "c007":
         if path.suffix.lower() == ".fjs":
-            return "brandimarte-fjsp"
+            return "standard-fjsp"
         lines = _nonempty_lines(text)
         if len(lines) >= 2:
             header = lines[0].split()
@@ -214,18 +224,19 @@ def detect_format(challenge_id: str, path: Path, encoded: bytes) -> str:
                 second = lines[1].split()
                 if len(second) == 2 * num_machines:
                     return "classic-jsp"
-                return "brandimarte-fjsp"
+                return "standard-fjsp"
     raise AcademicImportError(
         f"Could not detect the {challenge_id} format for {path}; use --format explicitly"
     )
 
 
 def parse_instance(challenge_id: str, format_name: str, encoded: bytes) -> dict[str, Any]:
+    format_name = FORMAT_ALIASES.get(format_name, format_name)
     parsers: dict[tuple[str, str], Callable[[bytes], dict[str, Any]]] = {
         ("c001", "dimacs-cnf"): _parse_dimacs,
         ("c002", "solomon-vrptw"): _parse_solomon,
         ("c003", "tig-qkp"): _parse_tig_qkp,
-        ("c007", "brandimarte-fjsp"): _parse_brandimarte,
+        ("c007", "standard-fjsp"): _parse_standard_fjsp,
         ("c007", "classic-jsp"): _parse_classic_jsp,
     }
     if format_name == "canonical-json":
@@ -407,42 +418,75 @@ def _parse_tig_qkp(encoded: bytes) -> dict[str, Any]:
     }
 
 
-def _parse_brandimarte(encoded: bytes) -> dict[str, Any]:
+def _parse_standard_fjsp(encoded: bytes) -> dict[str, Any]:
     lines = _nonempty_lines(encoded.decode("utf-8"))
+    header = lines[0].split()
+    if len(header) not in {2, 3}:
+        raise AcademicImportError(
+            "Standard FJSP header must contain jobs, machines, and optionally average flexibility"
+        )
     try:
-        header = [int(value) for value in lines[0].split()]
-        num_jobs, num_machines = header[:2]
+        num_jobs, num_machines = int(header[0]), int(header[1])
+        average_flexibility = float(header[2]) if len(header) == 3 else None
         tokens = [int(value) for line in lines[1:] for value in line.split()]
     except (ValueError, IndexError) as exc:
-        raise AcademicImportError("Invalid Brandimarte header or token") from exc
+        raise AcademicImportError("Invalid standard FJSP header or token") from exc
+    if num_jobs < 1 or num_machines < 1:
+        raise AcademicImportError("Standard FJSP jobs and machines must be positive")
+    if average_flexibility is not None and (
+        not math.isfinite(average_flexibility) or average_flexibility <= 0
+    ):
+        raise AcademicImportError(
+            "Standard FJSP average flexibility must be a positive finite number"
+        )
+
     position = 0
     jobs = []
-    for _ in range(num_jobs):
+    for job_index in range(num_jobs):
         if position >= len(tokens):
-            raise AcademicImportError("Brandimarte file ends before all jobs are defined")
+            raise AcademicImportError(
+                "Standard FJSP file ends before all jobs are defined"
+            )
         operation_count = tokens[position]
         position += 1
+        if operation_count < 1:
+            raise AcademicImportError(
+                f"Standard FJSP job {job_index + 1} has no operations"
+            )
         operations = []
-        for _ in range(operation_count):
+        for operation_index in range(operation_count):
             if position >= len(tokens):
-                raise AcademicImportError("Brandimarte operation is truncated")
+                raise AcademicImportError("Standard FJSP operation is truncated")
             machine_count = tokens[position]
             position += 1
+            if machine_count < 1:
+                raise AcademicImportError(
+                    "Standard FJSP operation has no eligible machine"
+                )
             operation: dict[str, int] = {}
             for _ in range(machine_count):
                 if position + 1 >= len(tokens):
-                    raise AcademicImportError("Brandimarte machine/time pair is truncated")
+                    raise AcademicImportError(
+                        "Standard FJSP machine/time pair is truncated"
+                    )
                 machine, duration = tokens[position], tokens[position + 1]
                 position += 2
                 if not (1 <= machine <= num_machines) or duration < 0:
-                    raise AcademicImportError("Invalid Brandimarte machine or duration")
-                operation[str(machine - 1)] = duration
-            if not operation:
-                raise AcademicImportError("Brandimarte operation has no eligible machine")
+                    raise AcademicImportError(
+                        "Invalid standard FJSP machine or duration"
+                    )
+                machine_key = str(machine - 1)
+                if machine_key in operation:
+                    raise AcademicImportError(
+                        "Standard FJSP operation repeats an eligible machine"
+                    )
+                operation[machine_key] = duration
             operations.append(operation)
         jobs.append(operations)
     if position != len(tokens):
-        raise AcademicImportError("Brandimarte file contains extra tokens after its jobs")
+        raise AcademicImportError(
+            "Standard FJSP file contains extra tokens after its jobs"
+        )
     return _job_challenge(num_jobs, num_machines, jobs)
 
 
@@ -530,7 +574,7 @@ def _prepare(helper: Path, challenge_id: str, challenge: dict[str, Any]) -> dict
     return challenge_value
 
 
-def _collect_inputs(inputs: list[Path | str]) -> list[Path]:
+def _collect_inputs(inputs: list[Path | str]) -> list[tuple[Path, str]]:
     collected = []
     likely_instance_suffixes = {".txt", ".cnf", ".fjs", ".jsp", ".json", ".dat"}
     for value in inputs:
@@ -546,7 +590,19 @@ def _collect_inputs(inputs: list[Path | str]) -> list[Path]:
             collected.append(path)
         else:
             raise AcademicImportError(f"Input does not exist: {path}")
-    return sorted(set(path.resolve() for path in collected), key=lambda path: str(path))
+    paths = sorted(set(path.resolve() for path in collected), key=lambda path: str(path))
+    if not paths:
+        return []
+    try:
+        common_root = Path(os.path.commonpath([str(path.parent) for path in paths]))
+        labels = [path.relative_to(common_root).as_posix() for path in paths]
+    except (ValueError, OSError):
+        labels = [path.name for path in paths]
+    if len(labels) != len(set(labels)):
+        raise AcademicImportError(
+            "Academic inputs do not have unique source paths; import them from a common parent directory"
+        )
+    return list(zip(paths, labels))
 
 
 def _nonempty_lines(text: str) -> list[str]:

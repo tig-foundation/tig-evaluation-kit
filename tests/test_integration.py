@@ -193,7 +193,7 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
         scheduling_dataset = import_dataset(
             challenge="c007",
             inputs=[self.repository / "tests/fixtures/job_scheduling/tiny.fjs"],
-            format_name="brandimarte-fjsp",
+            format_name="standard-fjsp",
             output=self.root / "job-scheduling",
             cache_dir=self.cache,
         )
@@ -202,6 +202,18 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(scheduling_result["objective"]["direction"], "minimize")
         self.assertIsInstance(scheduling_result["objective"]["value"], int)
+        scheduling_named_run = run_dataset(
+            dataset=scheduling_dataset,
+            algorithm_selector="c007_a001",
+            timeout_seconds=5,
+            output=self.root / "job-scheduling-named-run",
+            cache_dir=self.cache,
+        )
+        scheduling_named_result = self.read_results(scheduling_named_run)[0]
+        self.assertEqual(scheduling_named_result["status"], "solution")
+        self.assertEqual(
+            scheduling_named_result["objective"]["direction"], "minimize"
+        )
         delayed_run = run_dataset(
             dataset=scheduling_dataset,
             local=self.repository / "examples/local/job_scheduling_delayed.rs",

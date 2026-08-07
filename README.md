@@ -102,10 +102,45 @@ Version 1 supports:
 | `c001` satisfiability | DIMACS CNF containing exactly three literals per clause; canonical JSON |
 | `c002` vehicle routing | Solomon and Homberger/Gehring VRPTW; canonical JSON |
 | `c003` knapsack | normalized TIG/QKP graph text; canonical JSON |
-| `c007` job scheduling | Brandimarte FJSP, classic JSP; canonical JSON |
+| `c007` job scheduling | standard FJSP (`.fjs`, including Brandimarte/Hurink), classic JSP; canonical JSON |
 | `c008` energy arbitrage | canonical JSON |
 
 `--format auto` is the default and uses conservative format detection. Specify the format if a text file is ambiguous. Users can support other sources by converting them to the versioned canonical instance JSON described in [`schemas/instance.schema.json`](schemas/instance.schema.json).
+
+The import boundary deliberately separates academic file conventions from the
+representation consumed by solvers:
+
+```text
+Academic files
+    -> format-specific adapter
+    -> canonical TIG Challenge representation
+    -> validation by the official monorepo code
+    -> versioned dataset
+    -> any compatible TIG or local algorithm
+```
+
+| Responsibility | Owner |
+| --- | --- |
+| Support established academic formats such as standard FJSP, DIMACS, and Solomon VRPTW | `tig-challenges` |
+| Select the challenge, input files, and an explicit format when auto-detection is ambiguous | User |
+| Convert genuinely custom or unsupported data to canonical JSON, or contribute an adapter | User or project contributor |
+
+An adapter must parse its published format strictly, reject malformed or
+ambiguous data, normalize without changing problem semantics, validate through
+the authoritative challenge code, and retain its version plus the original
+relative source path and SHA-256. Actual benchmark collections remain local;
+only compact format fixtures belong in this repository.
+
+For example, a directory containing standard old-style FJSP instances can be
+normalized recursively without editing its source files:
+
+```bash
+python3 tig.py import \
+  --challenge c007 \
+  --input academic_benchmarks_fjs_shared \
+  --format standard-fjsp \
+  --out datasets/academic-fjs
+```
 
 Imported and generated datasets are local benchmark artifacts. The repository's
 `datasets/` directory is ignored by Git; only the small files under
@@ -227,7 +262,7 @@ repetitions, or capture settings.
 
 Canonical JSON contracts are in [`schemas/`](schemas/). The full design and verification plan is in [`docs/benchmark-runner-plan.md`](docs/benchmark-runner-plan.md).
 
-Users of the former `generate_dataset`, `run_algorithm`, or `evaluate_solutions` commands should follow the [migration guide](docs/migration.md). Existing knapsack, Solomon VRPTW, and Brandimarte FJSP text instances can be normalized by `import`; old quality outputs are deliberately not mixed with raw-objective results.
+Users of the former `generate_dataset`, `run_algorithm`, or `evaluate_solutions` commands should follow the [migration guide](docs/migration.md). Existing knapsack, Solomon VRPTW, and standard FJSP text instances can be normalized by `import`; old quality outputs are deliberately not mixed with raw-objective results.
 
 ## Current scope
 

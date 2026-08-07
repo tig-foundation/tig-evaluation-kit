@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -10,6 +11,7 @@ from tig_bench.importers import (
     detect_format,
     import_dataset,
     parse_instance,
+    supported_formats,
 )
 
 
@@ -56,15 +58,34 @@ CUST NO. X Y DEMAND READY DUE SERVICE
         self.assertEqual(challenge["weights"], [2, 3, 4])
         self.assertEqual(challenge["max_weight"], 5)
 
-    def test_brandimarte_fjsp(self) -> None:
-        encoded = b"""2 2 1
+    def test_standard_fjsp_with_decimal_flexibility(self) -> None:
+        encoded = b"""2 2 1.00
 2 1 1 3 1 2 4
 2 1 1 5 1 2 6
 """
-        challenge = parse_instance("c007", "brandimarte-fjsp", encoded)
+        challenge = parse_instance("c007", "standard-fjsp", encoded)
         self.assertEqual(challenge["num_jobs"], 2)
         self.assertEqual(challenge["jobs_per_product"], [1, 1])
         self.assertEqual(challenge["product_processing_times"][0][0], {"0": 3})
+        self.assertEqual(
+            detect_format("c007", Path("tiny.fjs"), encoded), "standard-fjsp"
+        )
+        self.assertIn("standard-fjsp", supported_formats("c007"))
+
+    def test_brandimarte_name_is_a_standard_fjsp_compatibility_alias(self) -> None:
+        encoded = b"1 2 2\n1 2 1 3 2 4\n"
+        self.assertEqual(
+            parse_instance("c007", "brandimarte-fjsp", encoded),
+            parse_instance("c007", "standard-fjsp", encoded),
+        )
+
+    def test_standard_fjsp_rejects_invalid_header_and_duplicate_machine(self) -> None:
+        with self.assertRaisesRegex(AcademicImportError, "positive finite"):
+            parse_instance("c007", "standard-fjsp", b"1 1 NaN\n1 1 1 3\n")
+        with self.assertRaisesRegex(AcademicImportError, "repeats"):
+            parse_instance(
+                "c007", "standard-fjsp", b"1 2 2.00\n1 2 1 3 1 4\n"
+            )
 
     def test_classic_jsp(self) -> None:
         encoded = b"""2 2
@@ -134,6 +155,54 @@ CUST NO. X Y DEMAND READY DUE SERVICE
                     output=output,
                 )
                 self.assertTrue(manifest.is_file())
+
+    def test_directory_import_preserves_relative_source_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            root = Path(temporary_dir)
+            collection = root / "collection"
+            first = collection / "Track1" / "SetA" / "shared.fjs"
+            second = collection / "Track3" / "SetB" / "shared.fjs"
+            first.parent.mkdir(parents=True)
+            second.parent.mkdir(parents=True)
+            first.write_text("1 1 1.00\n1 1 1 3\n", encoding="utf-8")
+            second.write_text("1 1 1.00\n1 1 1 4\n", encoding="utf-8")
+            output = root / "imported"
+
+            with (
+                patch.object(importers_module, "SourceManager") as source_manager,
+                patch.object(importers_module, "RustBuildManager") as build_manager,
+                patch.object(
+                    importers_module,
+                    "_prepare",
+                    side_effect=lambda _helper, _challenge_id, challenge: challenge,
+                ),
+            ):
+                source_manager.return_value.ensure.return_value = SimpleNamespace(
+                    commit="ab" * 20
+                )
+                build_manager.return_value.instance_helper.return_value = Path("helper")
+                manifest_path = import_dataset(
+                    challenge="c007",
+                    inputs=[collection],
+                    output=output,
+                )
+
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                [entry["source"] for entry in manifest["instances"]],
+                ["Track1/SetA/shared.fjs", "Track3/SetB/shared.fjs"],
+            )
+            self.assertTrue(
+                all(entry["format"] == "standard-fjsp" for entry in manifest["instances"])
+            )
+            envelopes = [
+                json.loads((output / entry["path"]).read_text(encoding="utf-8"))
+                for entry in manifest["instances"]
+            ]
+            self.assertEqual(
+                [value["provenance"]["source"] for value in envelopes],
+                ["Track1/SetA/shared.fjs", "Track3/SetB/shared.fjs"],
+            )
 
 
 if __name__ == "__main__":

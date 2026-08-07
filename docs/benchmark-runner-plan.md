@@ -238,12 +238,12 @@ Version 1 should provide these built-in input paths:
 - `c001`: DIMACS CNF;
 - `c002`: Solomon and Homberger/Gehring VRPTW text;
 - `c003`: the QKP variants already handled by the `origin/dev` download/conversion work, normalized into canonical knapsack fields;
-- `c007`: Brandimarte FJSP and classic JSP text;
+- `c007`: standard old-style FJSP text (including Brandimarte and Hurink) and classic JSP text;
 - `c008`: canonical JSON initially.
 
 Format selection may be explicit (`--format`) with conservative auto-detection for distinctive formats. Auto-detection must report the selected adapter and fail on ambiguity. Every adapter validates dimensions and indices, populates derived canonical fields consistently, and records its name/version plus the original file hash. Challenge-internal greedy baseline fields are computed with canonical code; BKS values are metadata and are never substituted for those fields.
 
-The adapter boundary is public and documented so users can contribute another adapter or emit the canonical envelope themselves. Academic downloaders are convenience tooling, not required at run time.
+The adapter boundary is public and documented so users can contribute another adapter or emit the canonical envelope themselves. The project owns adapters for established academic standards; users select their challenge and disambiguate formats when necessary. Genuinely custom formats remain the user's responsibility unless a new adapter is contributed. Academic downloaders are convenience tooling, not required at run time.
 
 Both generated and imported datasets accept an optional JSON metadata object at
 creation time. It can hold attribution, licensing, BKS maps, and external

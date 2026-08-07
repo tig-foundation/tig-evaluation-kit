@@ -18,10 +18,13 @@ python3 tig.py import --challenge c003 --input OLD_DATASET \
 python3 tig.py import --challenge c002 --input OLD_DATASET \
   --format solomon-vrptw --out datasets/my-vrptw
 
-# Former Brandimarte-style job-scheduling text
+# Standard old-style FJSP text, including Brandimarte and Hurink
 python3 tig.py import --challenge c007 --input OLD_DATASET \
-  --format brandimarte-fjsp --out datasets/my-fjsp
+  --format standard-fjsp --out datasets/my-fjsp
 ```
+
+`brandimarte-fjsp` remains accepted as a compatibility alias for
+`standard-fjsp`.
 
 `--format auto` recognizes these formats too, but an explicit value is useful
 for a migration because it prevents ambiguous text from being guessed.

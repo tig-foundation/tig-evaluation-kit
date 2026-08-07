@@ -47,6 +47,7 @@ FORMAT_CHOICES = [
     "dimacs-cnf",
     "solomon-vrptw",
     "tig-qkp",
+    "standard-fjsp",
     "brandimarte-fjsp",
     "classic-jsp",
 ]
