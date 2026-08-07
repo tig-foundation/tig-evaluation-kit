@@ -259,28 +259,15 @@ the seed, instance, and repetition number. The default is one run per instance.
 
 ## Hyperparameters
 
-Hyperparameters are defined by each algorithm, not by `tig-challenges`. Version
-1 does not yet provide a CLI command that lists an algorithm's available
-parameters. To find the options for an official algorithm:
+Hyperparameters are defined by each algorithm, not by `tig-challenges`. To find
+the available settings and defaults, inspect the algorithm's `README.md` and
+source code in the TIG monorepo, especially its `help()` function.
+`algorithms list` shows the algorithm's friendly source name; for example,
+`c007_a001` is named `adaptive_js`:
 
 ```bash
 python3 tig.py algorithms list --challenge c007
-python3 tig.py source status
 ```
-
-The first command maps each stable code to its source folder. For example,
-`c007_a001` maps to `adaptive_js` under the `job_scheduling` challenge. The
-second command prints the exact monorepo commit and clean checkout used by the
-runner. Start with:
-
-```text
-<clean-checkout>/tig-algorithms/src/job_scheduling/adaptive_js/README.md
-```
-
-If that README is missing or incomplete, inspect the same folder's Rust source,
-especially its `help()` function and the code that reads `hyperparameters`
-(commonly in `solver.rs`, `mod.rs`, `config.rs`, or `params.rs`). The source in
-this pinned checkout is authoritative and always matches the code being run.
 
 Pass the chosen values as inline JSON or as the path to a JSON file. For
 example, `c007_a001` documents an `effort` setting:
