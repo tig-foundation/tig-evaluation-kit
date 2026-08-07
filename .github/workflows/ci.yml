@@ -24,18 +24,20 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('tig_bench/**/*.py', 'tig_bench/templates/*.rs') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Build (generator + evaluator)
-        run: |
-          cargo build --release --features generator --bin tig_generator
-          cargo build --release --features evaluator --bin tig_evaluator
+      - name: Install test dependencies
+        run: python3 -m pip install -r requirements-test.txt
 
-      - name: Build (solver, one challenge)
-        run: cargo build --release --no-default-features --features "solver,knapsack" --bin tig_solver
+      - name: Run unit tests
+        run: python3 -m unittest discover -s tests -v
 
-      - name: Run tests
-        run: cargo test --release --features "knapsack,vehicle_routing,job_scheduling"
+      - name: Checkout authoritative monorepo snapshot for smoke tests
+        run: git clone --depth 1 https://github.com/tig-foundation/tig-monorepo "$RUNNER_TEMP/tig-monorepo"
+
+      - name: Run authoritative end-to-end smoke tests
+        env:
+          TIG_INTEGRATION_MONOREPO: ${{ runner.temp }}/tig-monorepo
+        run: python3 -m unittest tests.test_integration -v

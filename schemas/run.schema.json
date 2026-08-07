@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tig-foundation/tig-challenges/schemas/run.schema.json",
+  "title": "TIG benchmark run manifest",
+  "type": "object",
+  "required": ["schema_version", "run_id", "configuration", "environment"],
+  "properties": {
+    "schema_version": { "const": "tig.run/v1" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "configuration": { "type": "object" },
+    "environment": {
+      "type": "object",
+      "required": ["os", "architecture", "python"],
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

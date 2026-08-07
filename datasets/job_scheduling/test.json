@@ -1,8 +1,0 @@
-{
-    "seed": "test",
-    "n=50,s=fjsp_high": 100,
-    "n=50,s=fjsp_medium": 100,
-    "n=50,s=flow_shop": 100,
-    "n=50,s=hybrid_flow_shop": 100,
-    "n=50,s=job_shop": 100
-}

@@ -1,0 +1,4 @@
+c Deterministic three-SAT import fixture
+p cnf 3 2
+1 -2 3 0
+-1 2 -3 0

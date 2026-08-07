@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tig-foundation/tig-challenges/schemas/instance.schema.json",
+  "title": "TIG normalized instance",
+  "type": "object",
+  "required": ["schema_version", "instance_id", "challenge_id", "challenge", "provenance"],
+  "properties": {
+    "schema_version": { "const": "tig.instance/v1" },
+    "instance_id": { "type": "string", "minLength": 1 },
+    "challenge_id": { "enum": ["c001", "c002", "c003", "c007", "c008"] },
+    "challenge": { "type": "object" },
+    "provenance": {
+      "type": "object",
+      "required": ["kind", "monorepo_commit"],
+      "properties": {
+        "kind": { "enum": ["tig_generated", "academic_import"] },
+        "monorepo_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "source": { "type": ["string", "null"] },
+        "source_sha256": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "adapter": { "type": ["object", "null"] },
+        "generation": { "type": ["object", "null"] }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

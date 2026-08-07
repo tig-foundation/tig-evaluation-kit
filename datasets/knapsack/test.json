@@ -1,8 +1,0 @@
-{
-    "seed": "test",
-    "n_items=1000,budget=10": 100,
-    "n_items=1000,budget=25": 100,
-    "n_items=1000,budget=5": 100,
-    "n_items=5000,budget=10": 100,
-    "n_items=5000,budget=25": 100
-}

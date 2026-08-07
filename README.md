@@ -1,189 +1,241 @@
 # tig-challenges
 
-Suite of algorithmic challenges featured in **The Innovation Game (TIG)**, collated for evaluating and comparing **AI-driven algorithm discovery** methods.
+`tig-challenges` is an offline benchmark runner for CPU algorithms from [TIG's monorepo](https://github.com/tig-foundation/tig-monorepo) and for local Rust algorithms using the same interface.
 
-This repo provides a unified CLI and data formats so you can generate instances, run solvers, and evaluate solutions across multiple challenge domains. It is designed to integrate with frameworks like [SkyDiscover](https://github.com/skydiscover-ai/skydiscover), [CodeEvolve](https://github.com/inter-co/science-codeevolve), and [OpenEvolve](https://github.com/codelion/openevolve): **algorithm discovery frameworks should only edit files inside `src/<challenge>/algorithm/`**; that folder contains the evolvable program. The rest of the repo (instance parsing, validation, scoring) stays fixed.
+It can generate reproducible TIG instances, normalize academic instances, run an algorithm identified only by its stable code (for example `c002_a103`), and report raw objective values and solver-only wall-clock time. It does not emulate `tig-runtime`, meter fuel, or calculate TIG quality.
 
----
+The authoritative Challenge, Solution, objective, baseline, and submitted-algorithm code comes from a clean pinned `tig-monorepo` commit. Copied challenge implementations and the former standalone Rust crate have been removed.
+
+## Requirements
+
+- Python 3.10 or newer
+- Git
+- Rust/Cargo
+
+The first native build downloads Rust dependencies and can take a while. Builds are cached and build time is never included in solver timing.
 
 ## Quick start
 
-### 0. Prerequisites
-
-- Python 3.8+
-- Rust/Cargo (required because `tig.py` builds Rust binaries)
-
-Check your environment:
+The monorepo source cache initializes automatically on first use. To initialize or explicitly update it yourself:
 
 ```bash
-python3 --version
-cargo --version
+python3 tig.py source sync
+python3 tig.py source status
 ```
 
-### 1. Generate datasets
+Most users do not need `--source`. It selects the Git repository used to
+initialize a managed cache, for example `--source ../tig-monorepo` when testing
+committed local monorepo changes instead of GitHub's `main`. The runner mirrors
+Git objects from that repository and builds a clean pinned checkout; it never
+compiles uncommitted files from the supplied working tree. Use a separate
+`--cache-dir` when selecting a different source repository.
 
-Use one of the provided configs and generate instances:
+List current CPU algorithms from the pinned `main` commit:
 
 ```bash
-python3 tig.py generate_dataset job_scheduling datasets/job_scheduling/train.json
+python3 tig.py algorithms list
+python3 tig.py algorithms list --challenge c002
 ```
 
-This writes instance files under `datasets/job_scheduling/<seed>/...` by default.  
-To choose a custom output directory, pass `--out <dir>`.
-
-### 2. Evolve or edit the algorithm
-
-Run your algorithm discovery workflow against files in `src/<challenge>/algorithm/` (typically `src/<challenge>/algorithm/mod.rs`).  
-Keep all other code unchanged; only the algorithm files should evolve.
-
-### 3. Run algorithm on a dataset
-
-Run the current algorithm on all instances in a dataset directory:
+Generate 100 reproducible TIG vehicle-routing instances:
 
 ```bash
-python3 tig.py run_algorithm job_scheduling datasets/job_scheduling/test/n=50,s=flow_shop --workers 4 --timeout 120
+python3 tig.py generate \
+  --challenge c002 \
+  --track n_nodes=1000 \
+  --count 100
 ```
 
-Notes:
-- Solutions are saved as `<instance>.solution`.
-- Add `--baseline` to run the built-in baseline solver.
-- Add `--csv runs.csv` to export runtime and memory stats.
-
-### 4. Evaluate solutions
-
-Score generated solutions:
+Generation has a friendly seed flag that defaults to `default_seed`:
 
 ```bash
-python3 tig.py evaluate_solutions job_scheduling datasets/job_scheduling/test/n=50,s=flow_shop --csv eval.csv
+python3 tig.py generate \
+  --challenge c002 \
+  --track n_nodes=1000 \
+  --count 100 \
+  --seed training_set_2
 ```
 
-Optional:
-- Use `--solutions <dir>` if solutions are stored outside the dataset directory.
-- Use `--snapshots` to evaluate intermediate snapshot files (`.solution.*`).
-
-
----
-
-## Challenges
-
-- **[knapsack](src/knapsack/README.md)** — Select items to maximize value under a weight constraint, with pairwise interaction values (quadratic knapsack / team formation). [Challenge Design](https://docs.tig.foundation/static/knapsack.pdf).
-- **[job_scheduling](src/job_scheduling/README.md)** — Schedule operations on eligible machines to minimize makespan (Flexible Job Shop). [Challenge Design](https://docs.tig.foundation/static/jssp.pdf).
-- **[vehicle_routing](src/vehicle_routing/README.md)** — Route a fleet of vehicles from a depot to serve customers with time windows and capacity constraints (VRPTW). [Challenge Design](https://docs.tig.foundation/static/vrptw.pdf).
-
-### SOTA results
-
-*(Placeholder — leaderboard / state-of-the-art results and baselines will be linked here.)*
-
----
-
-## Python API
-
-**Invocation:** You can either run the script or import it as a module:
+`--start-nonce` selects the first deterministic instance index and defaults to
+zero. This is useful for creating another non-overlapping batch from the same
+seed and track. For example, this generates indices 100 through 149:
 
 ```bash
-python3 tig.py --help
-python3 tig.py <sub-command> ...
+python3 tig.py generate \
+  --challenge c002 \
+  --track n_nodes=1000 \
+  --seed training_set_2 \
+  --start-nonce 100 \
+  --count 50
 ```
 
-The Python CLI exposes three sub-commands:
+Generation is intentionally offline-only. There is no interface for replaying
+instances from the live TIG network.
 
-### `generate_dataset`
-
-Generate challenge instances from a JSON config file.
+Run a submitted algorithm by stable code or friendly name:
 
 ```bash
-python3 tig.py generate_dataset <challenge> <config> [--out <output_dir>]
+python3 tig.py run \
+  --dataset datasets/c002/<dataset-id>/dataset.json \
+  --algorithm c002_a103 \
+  --workers 4 \
+  --timeout 120
 ```
 
-Arguments/options:
-- `challenge`: one of `knapsack`, `vehicle_routing`, `job_scheduling`.
-- `config`: path to a JSON file containing:
-  - `seed` (string), and
-  - track entries mapping `track_id -> n_instances`.
-- `--out`: optional output root directory. Default is `datasets/<challenge>/<seed>`.
+The friendly equivalent is `--algorithm fast_lane_v4`. The result always records both names and the monorepo commit.
 
-Example:
-```bash
-python3 tig.py generate_dataset job_scheduling datasets/job_scheduling/train.json
-```
+## Academic instances
 
-### `run_algorithm`
-
-Build `tig_solver`, run it over all `*.txt` instances under a dataset directory, and write `<instance>.solution` files.
+Normalize one file or a directory into a versioned dataset:
 
 ```bash
-python3 tig.py run_algorithm <challenge> <dataset_dir> [options]
+python3 tig.py import \
+  --challenge c001 \
+  --input benchmarks/sat \
+  --format dimacs-cnf \
+  --name my-sat-benchmark \
+  --metadata benchmark-metadata.json
 ```
 
-Arguments/options:
-- `challenge`: one of `knapsack`, `vehicle_routing`, `job_scheduling`.
-- `dataset_dir`: directory searched recursively for `.txt` files.
-- `--workers <int>`: number of worker threads (default: `1`).
-- `--hyperparameters <json_or_string>`: for example, `--hyperparameters '{"exploration_level":5}'
-- `--timeout <seconds>`: per-instance timeout in seconds (default: `60`).
-- `--interval <seconds>`: snapshot interval in seconds; periodically copies latest solution to `.solution.<t>`.
-- `--out <output_dir>`: write solutions under a separate directory preserving relative paths (default: alongside dataset files).
-- `--baseline`: runs baseline algorithm
-- `--csv <file>`: write stats as csv format with columns `instance_file,time_taken,memory`.
+Version 1 supports:
 
-Example:
+| Challenge | Formats |
+| --- | --- |
+| `c001` satisfiability | DIMACS CNF containing exactly three literals per clause; canonical JSON |
+| `c002` vehicle routing | Solomon and Homberger/Gehring VRPTW; canonical JSON |
+| `c003` knapsack | normalized TIG/QKP graph text; canonical JSON |
+| `c007` job scheduling | Brandimarte FJSP, classic JSP; canonical JSON |
+| `c008` energy arbitrage | canonical JSON |
+
+`--format auto` is the default and uses conservative format detection. Specify the format if a text file is ambiguous. Users can support other sources by converting them to the versioned canonical instance JSON described in [`schemas/instance.schema.json`](schemas/instance.schema.json).
+
+Imported and generated datasets are local benchmark artifacts. The repository's
+`datasets/` directory is ignored by Git; only the small files under
+`tests/fixtures/` are retained for automated testing.
+
+Academic problem data has no generation seed. Before each algorithm call, the runner supplies a separate deterministic algorithm RNG seed without modifying the stored instance.
+
+`--metadata` accepts an inline JSON object or file for attribution, licensing, BKS maps, or other joinable analysis fields. Metadata is recorded but never changes validation, objectives, or solver status. The same option and `--name` are available on `generate`.
+
+## Algorithm randomness and repetitions
+
+Generation randomness and algorithm randomness are deliberately separate:
+
+- `generate --seed` selects the generated challenge instances.
+- `run --algorithm-seed` changes randomized solver behavior on the same stored instances.
+
+`--algorithm-seed` defaults to `default_seed`. Its effective 32-byte value is derived from the supplied string, instance hash, and repetition index. Thus repetitions receive different but reproducible random streams:
+
 ```bash
-python3 tig.py run_algorithm vehicle_routing datasets/vehicle_routing/test/n_nodes=800 --workers 4 --timeout 120 --csv runs.csv
+python3 tig.py run \
+  --dataset path/to/dataset.json \
+  --algorithm c001_a001 \
+  --algorithm-seed experiment_4 \
+  --repetitions 5
 ```
 
-### `evaluate_solutions`
+## Local algorithms
 
-Build `tig_evaluator`, evaluate saved solutions for each instance, and return quality outputs.
+Run a local module against the same canonical Challenge and evaluator:
 
 ```bash
-python3 tig.py evaluate_solutions <challenge> <dataset_dir> [options]
+python3 tig.py run \
+  --dataset path/to/dataset.json \
+  --local path/to/algorithm/mod.rs \
+  --hyperparameters '{"effort": 10}'
 ```
 
-Arguments/options:
-- `challenge`: one of `knapsack`, `vehicle_routing`, `job_scheduling`.
-- `dataset_dir`: directory searched recursively for `.txt` instance files.
-- `--solutions <dir>`: solution root directory (default: `dataset_dir`). Solutions are searched as `<solutions_dir>/<instance_file>.solution`.
-- `--snapshots`: evaluate snapshot files matching `<instance>.solution*` instead of only `<instance>.solution`.
-- `--workers <int>`: number of worker threads (default: `1`).
-- `--csv <file>`: write evaluation CSV with columns `solution_file,output`.
+CPU modules use the TIG callback contract:
 
-Example:
+```rust
+pub fn solve_challenge(
+    challenge: &Challenge,
+    save_solution: &dyn Fn(&Solution) -> anyhow::Result<()>,
+    hyperparameters: &Option<serde_json::Map<String, serde_json::Value>>,
+) -> anyhow::Result<()>;
+```
+
+Omitting `--hyperparameters` passes `None`; passing `{}` passes an explicitly empty map. Canonical algorithms apply and validate their own defaults. A missing required value therefore produces a normal `runtime_error` instead of a runner-invented default.
+
+See the [local algorithm guide](docs/local-algorithms.md) for a reusable template, RNG behavior, callback semantics, and build-cache boundaries.
+
+## Baselines and raw objectives
+
+Where the canonical challenge exposes a baseline:
+
 ```bash
-python3 tig.py evaluate_solutions vehicle_routing datasets/vehicle_routing/test/n_nodes=800 --solutions outputs --snapshots --csv eval.csv
+python3 tig.py run \
+  --dataset path/to/dataset.json \
+  --baseline
 ```
 
-### `import tig`
+The baseline produces an ordinary raw result. The runner never automatically compares it to another solver, a BKS, or TIG quality scaling.
 
-As a Python module, the same entry points are available:
-```python
-import tig
+| Challenge | Raw objective | Direction |
+| --- | --- | --- |
+| `c001` satisfiability | satisfied (`1` or `0`) | maximize |
+| `c002` vehicle routing | total distance | minimize |
+| `c003` knapsack | total value | maximize |
+| `c007` job scheduling | makespan | minimize |
+| `c008` energy arbitrage | total profit | maximize |
 
-tig.generate_dataset(
-    "job_scheduling",
-    "datasets/job_scheduling/datasets_config.json",
-    out_dir=None,
-)
+## Timing, solutions, and snapshots
 
-tig.run_algorithm(
-    "job_scheduling",
-    "datasets/job_scheduling/test/n=50,s=flow_shop",
-    num_workers=4,
-    timeout=120,
-)
+`solver_wallclock_ms` covers only the call that produces solutions. Source synchronization, builds, process startup, instance parsing, and objective evaluation are excluded. `--timeout` applies after the native solver reports that its instance is ready.
 
-tig.evaluate_solutions(
-    "job_scheduling",
-    "datasets/job_scheduling/test/n=50,s=flow_shop",
-    solutions_dir=None,
-    snapshots=False,
-    num_workers=4,
-)
+Solution files are not retained by default. The latest callback is kept temporarily so it can be evaluated, including after a timeout.
+
+```bash
+# Retain the final callback
+python3 tig.py run ... --save-solution
+
+# Retain every callback
+python3 tig.py run ... --save-all-solutions
+
+# Sample the latest callback at requested solver times
+python3 tig.py run ... --snapshot-times 1,5,10
+python3 tig.py run ... --snapshot-interval 5
 ```
 
----
+Repeated snapshots of the same callback are not duplicated.
 
-## References
+## Results and resume
 
-- **SkyDiscover:** [SkyDiscover](https://github.com/skydiscover-ai/skydiscover) — *A Flexible Framework for AI-Driven Scientific and Algorithmic Discovery*
-- **CodeEvolve:** [inter-co/science-codeevolve](https://github.com/inter-co/science-codeevolve) — *Open-source evolutionary coding agent for algorithm discovery and optimization*
-- **OpenEvolve:** [codelion/openevolve](https://github.com/codelion/openevolve)
+A run directory contains:
+
+```text
+runs/<run-id>/
+  manifest.json
+  results/<result-id>.json
+  results.jsonl
+  solutions/                 # only when requested
+  snapshots/                 # only when requested
+  logs/                      # only when a solver writes logs
+```
+
+Every result contains the raw objective, direction, solver wall-clock time, status, callback count, algorithm and instance identities, hyperparameters, RNG seed, and nullable `peak_memory_bytes`. Memory measurement is reserved for a later release.
+
+Resume a matching interrupted run with:
+
+```bash
+python3 tig.py run ... --out runs/my-run --resume
+```
+
+Completed atomic result files are reused only after their complete structure,
+run identity, algorithm settings, terminal status, and any saved solution or
+snapshot hashes have been validated. Invalid or missing work is rerun. Resume
+also rejects changes to source, dataset hashes, parameters, timeout, workers,
+repetitions, or capture settings.
+
+Canonical JSON contracts are in [`schemas/`](schemas/). The full design and verification plan is in [`docs/benchmark-runner-plan.md`](docs/benchmark-runner-plan.md).
+
+Users of the former `generate_dataset`, `run_algorithm`, or `evaluate_solutions` commands should follow the [migration guide](docs/migration.md). Existing knapsack, Solomon VRPTW, and Brandimarte FJSP text instances can be normalized by `import`; old quality outputs are deliberately not mixed with raw-objective results.
+
+## Current scope
+
+Version 1 supports CPU challenges `c001`, `c002`, `c003`, `c007`, and `c008`.
+Submitted-algorithm availability is discovered from the pinned `main` commit;
+local algorithms and canonical baselines do not depend on a submitted algorithm
+being exported for that challenge.
+
+CUDA challenges, historical algorithm branches, and portable process-tree memory measurement are deferred follow-on work. CUDA in particular is outside the current completion target and will be revisited much later.

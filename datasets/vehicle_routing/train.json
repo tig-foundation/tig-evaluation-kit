@@ -1,8 +1,0 @@
-{
-    "seed": "train",
-    "n_nodes=600": 100,
-    "n_nodes=700": 100,
-    "n_nodes=800": 100,
-    "n_nodes=900": 100,
-    "n_nodes=1000": 100
-}

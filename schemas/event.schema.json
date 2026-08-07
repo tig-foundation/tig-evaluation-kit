@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tig-foundation/tig-challenges/schemas/event.schema.json",
+  "title": "TIG solver process event",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "ready" }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["type", "callback_wallclock_ms", "solution"],
+      "properties": {
+        "type": { "const": "solution" },
+        "callback_wallclock_ms": { "type": "number", "minimum": 0 },
+        "solution": true
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": ["type", "outcome", "solver_wallclock_ms"],
+      "properties": {
+        "type": { "const": "complete" },
+        "outcome": { "enum": ["ok", "error", "panic"] },
+        "solver_wallclock_ms": { "type": "number", "minimum": 0 },
+        "error": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

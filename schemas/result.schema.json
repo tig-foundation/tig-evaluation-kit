@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tig-foundation/tig-challenges/schemas/result.schema.json",
+  "title": "TIG raw benchmark result",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "result_id",
+    "challenge_id",
+    "algorithm",
+    "instance",
+    "repetition",
+    "algorithm_seed",
+    "hyperparameters",
+    "status",
+    "solver_wallclock_ms",
+    "objective",
+    "callback_count",
+    "solution",
+    "solution_sha256",
+    "saved_solutions",
+    "snapshots",
+    "peak_memory_bytes",
+    "error"
+  ],
+  "properties": {
+    "schema_version": { "const": "tig.result/v1" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "result_id": { "type": "string", "minLength": 1 },
+    "challenge_id": { "enum": ["c001", "c002", "c003", "c007", "c008"] },
+    "algorithm": { "type": "object" },
+    "instance": { "type": "object" },
+    "repetition": { "type": "integer", "minimum": 0 },
+    "algorithm_seed": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["base", "effective"],
+          "properties": {
+            "base": { "type": "string" },
+            "effective": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "hyperparameters": { "type": ["object", "null"] },
+    "status": {
+      "enum": [
+        "solution",
+        "no_solution",
+        "invalid_solution",
+        "timeout_with_solution",
+        "timeout_without_solution",
+        "runtime_error",
+        "build_error",
+        "unsupported_instance",
+        "host_out_of_memory",
+        "gpu_out_of_memory"
+      ]
+    },
+    "solver_wallclock_ms": { "type": ["number", "null"], "minimum": 0 },
+    "objective": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["value", "direction"],
+          "properties": {
+            "value": { "type": "number" },
+            "direction": { "enum": ["minimize", "maximize"] }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "callback_count": { "type": "integer", "minimum": 0 },
+    "solution": { "type": ["string", "null"] },
+    "solution_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "saved_solutions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/savedSolution" }
+    },
+    "snapshots": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/snapshot" }
+    },
+    "peak_memory_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "error": { "type": ["object", "null"] }
+  },
+  "$defs": {
+    "objective": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["value", "direction"],
+          "properties": {
+            "value": { "type": "number" },
+            "direction": { "enum": ["minimize", "maximize"] }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "savedSolution": {
+      "type": "object",
+      "required": ["callback_index", "callback_wallclock_ms", "path", "sha256"],
+      "properties": {
+        "callback_index": { "type": "integer", "minimum": 1 },
+        "callback_wallclock_ms": { "type": "number", "minimum": 0 },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "snapshot": {
+      "type": "object",
+      "required": [
+        "requested_wallclock_ms",
+        "callback_index",
+        "callback_wallclock_ms",
+        "path",
+        "sha256",
+        "objective",
+        "error"
+      ],
+      "properties": {
+        "requested_wallclock_ms": { "type": "number", "minimum": 0 },
+        "callback_index": { "type": "integer", "minimum": 1 },
+        "callback_wallclock_ms": { "type": "number", "minimum": 0 },
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "objective": { "$ref": "#/$defs/objective" },
+        "error": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

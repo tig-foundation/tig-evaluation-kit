@@ -13,9 +13,8 @@ target/
 
 __pycache__/
 
-# Ignore these. 
+# Local benchmark artifacts
 db_data/
-datasets/**/*.txt
-datasets/**/*.solution*
+/datasets/
 
 .DS_Store

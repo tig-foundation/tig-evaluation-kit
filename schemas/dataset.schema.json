@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tig-foundation/tig-challenges/schemas/dataset.schema.json",
+  "title": "TIG benchmark dataset manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "name",
+    "challenge_id",
+    "challenge",
+    "monorepo_commit",
+    "instances",
+    "provenance",
+    "metadata"
+  ],
+  "properties": {
+    "schema_version": { "const": "tig.dataset/v1" },
+    "dataset_id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "challenge_id": { "enum": ["c001", "c002", "c003", "c007", "c008"] },
+    "challenge": { "type": "string" },
+    "monorepo_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "instances": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "sha256"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "path": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "provenance": { "type": "object" },
+    "metadata": { "type": "object" }
+  },
+  "additionalProperties": false
+}
