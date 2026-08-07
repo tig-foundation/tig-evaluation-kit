@@ -259,18 +259,44 @@ the seed, instance, and repetition number. The default is one run per instance.
 
 ## Hyperparameters
 
-Pass hyperparameters as inline JSON or as the path to a JSON file:
+Hyperparameters are defined by each algorithm, not by `tig-challenges`. Version
+1 does not yet provide a CLI command that lists an algorithm's available
+parameters. To find the options for an official algorithm:
+
+```bash
+python3 tig.py algorithms list --challenge c007
+python3 tig.py source status
+```
+
+The first command maps each stable code to its source folder. For example,
+`c007_a001` maps to `adaptive_js` under the `job_scheduling` challenge. The
+second command prints the exact monorepo commit and clean checkout used by the
+runner. Start with:
+
+```text
+<clean-checkout>/tig-algorithms/src/job_scheduling/adaptive_js/README.md
+```
+
+If that README is missing or incomplete, inspect the same folder's Rust source,
+especially its `help()` function and the code that reads `hyperparameters`
+(commonly in `solver.rs`, `mod.rs`, `config.rs`, or `params.rs`). The source in
+this pinned checkout is authoritative and always matches the code being run.
+
+Pass the chosen values as inline JSON or as the path to a JSON file. For
+example, `c007_a001` documents an `effort` setting:
 
 ```bash
 python3 tig.py run \
   --dataset path/to/dataset.json \
-  --algorithm c002_a103 \
-  --hyperparameters '{"effort": 10}'
+  --algorithm c007_a001 \
+  --hyperparameters '{"effort": "high"}'
 ```
 
-If you omit `--hyperparameters`, the algorithm receives no custom values and
-can use its own defaults. If the algorithm requires a value and has no default,
-that run ends with `runtime_error`. The runner does not invent defaults.
+The runner passes this JSON to the algorithm unchanged. If you omit
+`--hyperparameters`, the algorithm receives no custom values and can use its
+own defaults. If the algorithm requires a value and has no default, that run
+ends with `runtime_error`. The runner does not invent defaults or interpret an
+algorithm's settings.
 
 ## Timing, saved solutions, and snapshots
 
