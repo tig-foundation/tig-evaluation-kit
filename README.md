@@ -375,5 +375,11 @@ Official algorithm availability is read from the pinned `main` commit. Local
 algorithms and official baselines can still be used when a challenge has no
 submitted algorithm exported on `main`.
 
-CUDA challenges, algorithms from historical branches, and portable
-process-tree memory measurement are planned for later versions.
+Support for GPU/CUDA challenges is still planned, but it has not been
+implemented. Version 1 is CPU-only. Algorithms from historical branches and
+portable process-tree memory measurement are also planned for later versions.
+
+## AI-assisted development
+
+Coding agents should start with [`AGENTS.md`](AGENTS.md) for a concise map of
+the repository, its design boundaries, and the relevant verification commands.
