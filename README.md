@@ -84,13 +84,14 @@ python3 tig.py run \
   --dataset datasets/my-fjs-dataset/dataset.json \
   --algorithm c007_a001 \
   --timeout 120 \
-  --workers 4 \
+  --workers 1 \
   --out runs/my-fjs-run
 ```
 
-Here, `--timeout 120` gives each solver call up to 120 seconds. `--workers 4`
-runs up to four different instances at once; it does not make an individual
-algorithm use four CPU cores.
+Here, `--timeout 120` gives each solver call up to 120 seconds. One worker is
+the default and gives the cleanest timing. You can use more workers to finish a
+large batch sooner; see
+[Timing, saved solutions, and snapshots](#timing-saved-solutions-and-snapshots).
 
 ### 4. Read the results
 
@@ -167,7 +168,7 @@ used by an algorithm while solving an instance.
 Academic benchmark collections are not stored in this repository. You provide
 the files, and `tig-challenges` imports them when their format is supported.
 The repository's `datasets/` directory is ignored by Git, so imported and
-generated datasets stay local. Only tiny test fixtures are committed.
+generated datasets stay local.
 
 Version 1 understands these formats:
 
@@ -271,6 +272,38 @@ If you omit `--hyperparameters`, the algorithm receives no custom values and
 can use its own defaults. If the algorithm requires a value and has no default,
 that run ends with `runtime_error`. The runner does not invent defaults.
 
+## Timing, saved solutions, and snapshots
+
+`solver_wallclock_ms` measures only the algorithm call that produces solutions.
+It excludes source downloads, compilation, process startup, instance parsing,
+and objective evaluation. A solver may also stop early because of its own
+stopping condition.
+
+For the cleanest timing comparisons, use the default `--workers 1` and avoid
+other heavy work on the machine. With a higher worker count, solver processes
+run at the same time and compete for CPU time, cache, and memory bandwidth.
+This can make individual wall-clock measurements slower or less consistent.
+Multiple workers are useful when finishing a batch quickly matters more than
+isolating each timing measurement. They do not make an individual algorithm
+use multiple CPU cores.
+
+Solutions can be large, so they are not saved by default. The runner still
+keeps the latest one temporarily so it can calculate the objective.
+
+```bash
+# Save only the final solution
+python3 tig.py run ... --save-solution
+
+# Save every solution reported through the callback
+python3 tig.py run ... --save-all-solutions
+
+# Save the latest solution at selected solver times
+python3 tig.py run ... --snapshot-times 1,5,10
+python3 tig.py run ... --snapshot-interval 5
+```
+
+Repeated snapshots of an unchanged solution are not duplicated.
+
 ## Local algorithms
 
 You can benchmark a local Rust module against the same instances and evaluator:
@@ -295,30 +328,6 @@ pub fn solve_challenge(
 
 See the [local algorithm guide](docs/local-algorithms.md) for a template and a
 full explanation of random seeds, callbacks, and build caching.
-
-## Timing, saved solutions, and snapshots
-
-`solver_wallclock_ms` measures only the algorithm call that produces solutions.
-It excludes source downloads, compilation, process startup, instance parsing,
-and objective evaluation. A solver may also stop early because of its own
-stopping condition.
-
-Solutions can be large, so they are not saved by default. The runner still
-keeps the latest one temporarily so it can calculate the objective.
-
-```bash
-# Save only the final solution
-python3 tig.py run ... --save-solution
-
-# Save every solution reported through the callback
-python3 tig.py run ... --save-all-solutions
-
-# Save the latest solution at selected solver times
-python3 tig.py run ... --snapshot-times 1,5,10
-python3 tig.py run ... --snapshot-interval 5
-```
-
-Repeated snapshots of an unchanged solution are not duplicated.
 
 ## Resuming an interrupted run
 
