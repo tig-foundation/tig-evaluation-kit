@@ -110,3 +110,14 @@ class SourceManagerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GitInvocationTests(unittest.TestCase):
+    def test_git_commands_skip_lfs_smudge(self) -> None:
+        from unittest.mock import patch
+
+        with patch("tig_bench.source.subprocess.run") as run:
+            run.return_value.stdout = "ok\n"
+            SourceManager._git(["status"])
+        environment = run.call_args.kwargs["env"]
+        self.assertEqual(environment.get("GIT_LFS_SKIP_SMUDGE"), "1")
