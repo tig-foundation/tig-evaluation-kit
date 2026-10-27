@@ -6,6 +6,10 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # Monorepo commit the smoke tests build against. Bump it deliberately after
+  # checking the runner against the new commit; the separate drift job below
+  # reports (without blocking) whether current monorepo main still works.
+  TIG_SMOKE_MONOREPO_COMMIT: cd6090b8439ecd5b0f937c8d7bf3c35a46ff6dcb
 
 jobs:
   build-and-test:
@@ -34,7 +38,34 @@ jobs:
       - name: Run unit tests
         run: python3 -m unittest discover -s tests -v
 
-      - name: Checkout authoritative monorepo snapshot for smoke tests
+      - name: Checkout the pinned monorepo snapshot for smoke tests
+        run: |
+          git init -q "$RUNNER_TEMP/tig-monorepo"
+          git -C "$RUNNER_TEMP/tig-monorepo" remote add origin https://github.com/tig-foundation/tig-monorepo
+          git -C "$RUNNER_TEMP/tig-monorepo" fetch --depth 1 origin "$TIG_SMOKE_MONOREPO_COMMIT"
+          # The source manager resolves the repository's main branch.
+          git -C "$RUNNER_TEMP/tig-monorepo" checkout -q -b main FETCH_HEAD
+
+      - name: Run authoritative end-to-end smoke tests
+        env:
+          TIG_INTEGRATION_MONOREPO: ${{ runner.temp }}/tig-monorepo
+        run: python3 -m unittest tests.test_integration -v
+
+  monorepo-main-drift:
+    name: Smoke test against current monorepo main (informational)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install test dependencies
+        run: python3 -m pip install -r requirements-test.txt
+
+      - name: Checkout current monorepo main
         run: git clone --depth 1 https://github.com/tig-foundation/tig-monorepo "$RUNNER_TEMP/tig-monorepo"
 
       - name: Run authoritative end-to-end smoke tests

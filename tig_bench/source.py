@@ -268,6 +268,10 @@ class SourceManager:
 
     @staticmethod
     def _git(args: Sequence[str], cwd: Path | None = None) -> str:
+        # Large files tracked with Git LFS (prebuilt algorithm archives) are not
+        # needed by the runner, and the shared mirror cannot serve them. Keep the
+        # pointer files so checkouts succeed with or without git-lfs installed.
+        environment = {**os.environ, "GIT_LFS_SKIP_SMUDGE": "1"}
         try:
             result = subprocess.run(
                 ["git", *args],
@@ -275,6 +279,7 @@ class SourceManager:
                 check=True,
                 capture_output=True,
                 text=True,
+                env=environment,
             )
         except FileNotFoundError as exc:
             raise SourceError("Git is required but was not found on PATH") from exc
