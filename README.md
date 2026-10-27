@@ -1,6 +1,6 @@
-# tig-challenges
+# tig-evaluation-kit
 
-`tig-challenges` lets you benchmark TIG algorithms on your own computer.
+`tig-evaluation-kit` lets you benchmark TIG algorithms on your own computer.
 
 You can use it to:
 
@@ -29,8 +29,8 @@ another solver, or the TIG baseline in whatever way suits your experiment.
 Clone this repository and enter it:
 
 ```bash
-git clone https://github.com/tig-foundation/tig-challenges.git
-cd tig-challenges
+git clone https://github.com/tig-foundation/tig-evaluation-kit.git
+cd tig-evaluation-kit
 ```
 
 There is no separate `tig-monorepo` setup step. The first command that needs TIG
@@ -132,6 +132,12 @@ official TIG monorepo; choosing a fork or another source repository is not
 supported. Advanced users can use `--cache-dir` to put the managed source and
 build cache somewhere else.
 
+By default the cache lives in `~/.cache/tig-evaluation-kit` (or under
+`$XDG_CACHE_HOME`). The `TIG_EVALUATION_KIT_CACHE_DIR` environment variable
+overrides it. A cache created under the repository's former name,
+`tig-challenges`, is reused automatically, and the old
+`TIG_CHALLENGES_CACHE_DIR` variable is still honoured.
+
 ## Generated TIG datasets
 
 Generation is repeatable. With the same challenge, track, seed, and instance
@@ -166,7 +172,7 @@ used by an algorithm while solving an instance.
 ## Academic datasets
 
 Academic benchmark collections are not stored in this repository. You provide
-the files, and `tig-challenges` imports them when their format is supported.
+the files, and `tig-evaluation-kit` imports them when their format is supported.
 The repository's `datasets/` directory is ignored by Git, so imported and
 generated datasets stay local.
 
@@ -186,7 +192,7 @@ with `--format`.
 
 The responsibility is intentionally simple:
 
-- `tig-challenges` provides importers for established formats such as standard
+- `tig-evaluation-kit` provides importers for established formats such as standard
   FJSP, DIMACS, and Solomon VRPTW.
 - You choose the correct TIG challenge and provide the files. If automatic
   detection is uncertain, you also name the format.
@@ -259,7 +265,7 @@ the seed, instance, and repetition number. The default is one run per instance.
 
 ## Hyperparameters
 
-Hyperparameters are defined by each algorithm, not by `tig-challenges`. To find
+Hyperparameters are defined by each algorithm, not by `tig-evaluation-kit`. To find
 the available settings and defaults, inspect the algorithm's `README.md` and
 source code in the TIG monorepo, especially its `help()` function.
 `algorithms list` shows the algorithm's friendly source name; for example,

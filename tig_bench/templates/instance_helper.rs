@@ -73,6 +73,8 @@ fn generate(args: &[String]) -> Result<Value> {
         _ => anyhow::bail!("Canonical Track did not serialize as a string"),
     };
     let settings = BenchmarkSettings {
+        // Part of the canonical seed derivation; it keeps generated datasets
+        // stable and is intentionally unchanged by the repository rename.
         player_id: "tig-challenges".to_owned(),
         block_id: "offline-v1".to_owned(),
         challenge_id: CHALLENGE_ID.to_owned(),

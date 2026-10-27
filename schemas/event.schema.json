@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/tig-foundation/tig-challenges/schemas/event.schema.json",
+  "$id": "https://github.com/tig-foundation/tig-evaluation-kit/schemas/event.schema.json",
   "title": "TIG solver process event",
   "oneOf": [
     {

@@ -42,16 +42,26 @@ class SourceSnapshot:
         return data
 
 
+CACHE_DIR_ENV = "TIG_EVALUATION_KIT_CACHE_DIR"
+LEGACY_CACHE_DIR_ENV = "TIG_CHALLENGES_CACHE_DIR"
+CACHE_DIR_NAME = "tig-evaluation-kit"
+LEGACY_CACHE_DIR_NAME = "tig-challenges"
+
+
 def default_cache_dir() -> Path:
-    explicit = os.environ.get("TIG_CHALLENGES_CACHE_DIR")
-    if explicit:
-        return Path(explicit).expanduser()
+    """Managed cache location, honouring the repository's former name."""
+    for variable in (CACHE_DIR_ENV, LEGACY_CACHE_DIR_ENV):
+        explicit = os.environ.get(variable)
+        if explicit:
+            return Path(explicit).expanduser()
 
     xdg_cache = os.environ.get("XDG_CACHE_HOME")
-    if xdg_cache:
-        return Path(xdg_cache).expanduser() / "tig-challenges"
-
-    return Path.home() / ".cache" / "tig-challenges"
+    cache_root = Path(xdg_cache).expanduser() if xdg_cache else Path.home() / ".cache"
+    preferred = cache_root / CACHE_DIR_NAME
+    legacy = cache_root / LEGACY_CACHE_DIR_NAME
+    if not preferred.exists() and legacy.is_dir():
+        return legacy
+    return preferred
 
 
 class SourceManager:
