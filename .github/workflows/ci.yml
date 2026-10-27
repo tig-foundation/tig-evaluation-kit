@@ -43,7 +43,8 @@ jobs:
           git init -q "$RUNNER_TEMP/tig-monorepo"
           git -C "$RUNNER_TEMP/tig-monorepo" remote add origin https://github.com/tig-foundation/tig-monorepo
           git -C "$RUNNER_TEMP/tig-monorepo" fetch --depth 1 origin "$TIG_SMOKE_MONOREPO_COMMIT"
-          git -C "$RUNNER_TEMP/tig-monorepo" checkout -q FETCH_HEAD
+          # The source manager resolves the repository's main branch.
+          git -C "$RUNNER_TEMP/tig-monorepo" checkout -q -b main FETCH_HEAD
 
       - name: Run authoritative end-to-end smoke tests
         env:
