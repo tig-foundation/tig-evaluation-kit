@@ -112,6 +112,50 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class DefaultCacheDirTests(unittest.TestCase):
+    def test_prefers_new_name_and_falls_back_to_legacy_cache(self) -> None:
+        from unittest.mock import patch
+
+        from tig_bench.source import default_cache_dir
+
+        with tempfile.TemporaryDirectory() as temporary_dir:
+            home = Path(temporary_dir)
+            environment = {"HOME": str(home)}
+            for variable in (
+                "TIG_EVALUATION_KIT_CACHE_DIR",
+                "TIG_CHALLENGES_CACHE_DIR",
+                "XDG_CACHE_HOME",
+            ):
+                environment.setdefault(variable, "")
+            with patch.dict("os.environ", environment, clear=False):
+                import os
+
+                for variable in (
+                    "TIG_EVALUATION_KIT_CACHE_DIR",
+                    "TIG_CHALLENGES_CACHE_DIR",
+                    "XDG_CACHE_HOME",
+                ):
+                    os.environ.pop(variable, None)
+
+                self.assertEqual(
+                    default_cache_dir(), home / ".cache" / "tig-evaluation-kit"
+                )
+
+                legacy = home / ".cache" / "tig-challenges"
+                legacy.mkdir(parents=True)
+                self.assertEqual(default_cache_dir(), legacy)
+
+                (home / ".cache" / "tig-evaluation-kit").mkdir()
+                self.assertEqual(
+                    default_cache_dir(), home / ".cache" / "tig-evaluation-kit"
+                )
+
+                os.environ["TIG_CHALLENGES_CACHE_DIR"] = str(home / "legacy-env")
+                self.assertEqual(default_cache_dir(), home / "legacy-env")
+                os.environ["TIG_EVALUATION_KIT_CACHE_DIR"] = str(home / "new-env")
+                self.assertEqual(default_cache_dir(), home / "new-env")
+
+
 class GitInvocationTests(unittest.TestCase):
     def test_git_commands_skip_lfs_smudge(self) -> None:
         from unittest.mock import patch

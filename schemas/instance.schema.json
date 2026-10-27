@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/tig-foundation/tig-challenges/schemas/instance.schema.json",
+  "$id": "https://github.com/tig-foundation/tig-evaluation-kit/schemas/instance.schema.json",
   "title": "TIG normalized instance",
   "type": "object",
   "required": ["schema_version", "instance_id", "challenge_id", "challenge", "provenance"],

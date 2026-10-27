@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/tig-foundation/tig-challenges/schemas/dataset.schema.json",
+  "$id": "https://github.com/tig-foundation/tig-evaluation-kit/schemas/dataset.schema.json",
   "title": "TIG benchmark dataset manifest",
   "type": "object",
   "required": [

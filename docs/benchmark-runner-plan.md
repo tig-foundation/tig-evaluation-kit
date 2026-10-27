@@ -26,7 +26,7 @@ Turn this repository into the offline benchmark runner for TIG algorithms. A use
 
 The runner is not a reimplementation of the TIG runtime. It will not instrument fuel, reproduce runtime signatures, or include build time in solver time. It executes trusted algorithm source as native code.
 
-This repository remains named `tig-challenges`, but it must not own copies of TIG challenge, verification, algorithm, or baseline implementations. `tig-monorepo` is authoritative for all of those.
+This repository, now named `tig-evaluation-kit` (formerly `tig-challenges`), must not own copies of TIG challenge, verification, algorithm, or baseline implementations. `tig-monorepo` is authoritative for all of those.
 
 ## 2. Resolved product decisions
 
@@ -133,9 +133,10 @@ Both `c002_a103` and `fast_lane_v4` may select the algorithm. Ambiguous friendly
 A local algorithm is selected with its source path; its challenge comes from the dataset. The CLI accepts any explicit Rust module file, with reusable examples under `examples/local/`. The module and its sibling Rust files are hashed into the build identity. Local code uses canonical monorepo `Challenge` and `Solution` types and the same callback/hyperparameter contract.
 
 The former standalone package also used the name `tig-challenges` and contained
-copied challenge implementations. It has been removed. Generated helper crates
-have distinct names, so `tig-challenges` in a harness now unambiguously means
-the canonical monorepo crate.
+copied challenge implementations. It has been removed, and the repository itself
+was renamed `tig-evaluation-kit`. Generated helper crates have distinct names, so
+`tig-challenges` in a harness now unambiguously means the canonical monorepo
+crate.
 
 ## 5. Process architecture
 
@@ -214,7 +215,7 @@ through canonical `BenchmarkSettings::calc_seed`; the other settings fields are
 fixed and versioned for this offline tool:
 
 ```text
-player_id   = "tig-challenges"
+player_id   = "tig-challenges"   # fixed seed input; kept after the repository rename
 block_id    = "offline-v1"
 algorithm_id = "offline"
 generation_seed = value of --seed (default "default_seed")

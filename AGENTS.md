@@ -1,8 +1,8 @@
-# tig-challenges agent guide
+# tig-evaluation-kit agent guide
 
 ## Purpose and boundaries
 
-`tig-challenges` is an offline benchmark runner. It generates or imports
+`tig-evaluation-kit` is an offline benchmark runner. It generates or imports
 datasets, runs official TIG or local Rust algorithms, validates their solutions,
 and records raw objectives and solver-only wall-clock time.
 
