@@ -379,6 +379,13 @@ Support for GPU/CUDA challenges is still planned, but it has not been
 implemented. Version 1 is CPU-only. Algorithms from historical branches and
 portable process-tree memory measurement are also planned for later versions.
 
+Known limitation: monorepo commits from October 2026 onwards no longer let the
+energy-arbitrage (`c008`) Challenge be read back from JSON, because it carries
+a hidden seed that is deliberately not serialized. A cache synced to such a
+commit cannot build the `c008` helper; the other CPU challenges are
+unaffected. Supporting this needs `c008` instances to be regenerated from
+their seed at run time, which is planned but not implemented.
+
 ## AI-assisted development
 
 Coding agents should start with [`AGENTS.md`](AGENTS.md) for a concise map of
