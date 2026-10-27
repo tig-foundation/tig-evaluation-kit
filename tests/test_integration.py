@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from tig_bench.catalog import AlgorithmCatalog
 from tig_bench.dataset import generate_dataset
 from tig_bench.importers import import_dataset
 from tig_bench.runner import run_dataset
@@ -24,10 +25,28 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             if configured_cache
             else self.root / "cache"
         )
-        SourceManager._from_test_repository(
+        self.snapshot = SourceManager._from_test_repository(
             self.cache, Path(MONOREPO).resolve()
         ).ensure()
         self.repository = Path(__file__).resolve().parent.parent
+
+    def exported_algorithm(self, challenge_id: str):
+        """First algorithm the pinned monorepo exports for a challenge.
+
+        Exported algorithm codes change as submissions are merged, so the smoke
+        test selects one from the catalog instead of naming a specific code.
+        """
+        algorithms = AlgorithmCatalog(self.snapshot.checkout).list(challenge_id)
+        self.assertTrue(
+            algorithms, f"the monorepo snapshot exports no {challenge_id} algorithm"
+        )
+        return algorithms[0]
+
+    def assert_completed_with_solution(self, result: dict) -> None:
+        # A submitted algorithm may keep improving until the timeout; both
+        # outcomes are successful runs with an evaluated solution.
+        self.assertIn(result["status"], {"solution", "timeout_with_solution"})
+        self.assertIsNotNone(result["objective"])
 
     def tearDown(self) -> None:
         self.temporary_dir.cleanup()
@@ -65,9 +84,10 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
             [entry["sha256"] for entry in second_manifest["instances"]],
         )
 
+        satisfiability_algorithm = self.exported_algorithm("c001")
         named_run = run_dataset(
             dataset=first_dataset,
-            algorithm_selector="c001_a001",
+            algorithm_selector=satisfiability_algorithm.id,
             timeout_seconds=5,
             workers=2,
             repetitions=2,
@@ -76,7 +96,8 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
         )
         named_results = self.read_results(named_run)
         self.assertEqual(len(named_results), 4)
-        self.assertTrue(all(result["status"] == "solution" for result in named_results))
+        for result in named_results:
+            self.assert_completed_with_solution(result)
         self.assertTrue(
             all(result["objective"]["direction"] == "maximize" for result in named_results)
         )
@@ -92,7 +113,7 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
         }
         resumed_run = run_dataset(
             dataset=first_dataset,
-            algorithm_selector="c001_a001",
+            algorithm_selector=satisfiability_algorithm.id,
             timeout_seconds=5,
             workers=2,
             repetitions=2,
@@ -111,7 +132,7 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
 
         alias_run = run_dataset(
             dataset=first_dataset,
-            algorithm_selector="schnoing",
+            algorithm_selector=satisfiability_algorithm.name,
             timeout_seconds=5,
             workers=2,
             repetitions=2,
@@ -204,13 +225,13 @@ class AuthoritativePipelineIntegrationTests(unittest.TestCase):
         self.assertIsInstance(scheduling_result["objective"]["value"], int)
         scheduling_named_run = run_dataset(
             dataset=scheduling_dataset,
-            algorithm_selector="c007_a001",
+            algorithm_selector=self.exported_algorithm("c007").id,
             timeout_seconds=5,
             output=self.root / "job-scheduling-named-run",
             cache_dir=self.cache,
         )
         scheduling_named_result = self.read_results(scheduling_named_run)[0]
-        self.assertEqual(scheduling_named_result["status"], "solution")
+        self.assert_completed_with_solution(scheduling_named_result)
         self.assertEqual(
             scheduling_named_result["objective"]["direction"], "minimize"
         )
