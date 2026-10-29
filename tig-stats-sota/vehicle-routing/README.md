@@ -34,8 +34,11 @@ coordinates, and the gap is
 gap % = (solution distance - BKS distance) / BKS distance * 100
 ```
 
-Lower is better. The chart shows the mean over the ten instances, a whisker
-of plus or minus one sample standard deviation, and one dot per instance.
+Lower is better. The chart's top panel shows the mean gap over the ten
+instances, a whisker of plus or minus one sample standard deviation, and one
+dot per instance. The bottom panel shows the number of vehicles in each final
+solution the same way, with the mean BKS fleet as a dashed line, so it is
+visible at a glance that a negative gap is reached with a larger fleet.
 
 Two caveats apply when reading the numbers against the literature:
 
@@ -62,10 +65,12 @@ Two caveats apply when reading the numbers against the literature:
 | rc2_10_8 | 18 | 23595.33 | +12.67% | 19 | +7.73%* | 24 | +1.19%* | 22 |
 | rc2_10_9 | 18 | 22919.42 | +11.35% | 19 | +9.07%* | 24 | +1.80%* | 21 |
 | rc2_10_10 | 18 | 21834.94 | +16.40% | 19 | +9.29%* | 21 | +1.97%* | 21 |
-| **mean ± sd** | | | **+10.26% ± 4.94** | 21.3 | **+5.96% ± 4.06** | 26.2 | **-0.70% ± 3.01** | 23.4 |
+| **mean ± sd** | **18.2** | | **+10.26% ± 4.94** | **21.3 ± 2.7** | **+5.96% ± 4.06** | **26.2 ± 4.6** | **-0.70% ± 3.01** | **23.4 ± 2.8** |
 
 `*` marks runs that were stopped by the 30 s timeout; the last solution saved
-before the stop is the one measured. Mean solver time was 0.3 s for `hgs`,
+before the stop is the one measured. Every configuration uses more vehicles
+than the BKS on every instance, which is how `hgs_advance` lands below the
+BKS distance on five instances. Mean solver time was 0.3 s for `hgs`,
 30 s for `hgs_explore5` and 29.4 s for `hgs_advance` (it stopped on its own
 criteria on two instances).
 

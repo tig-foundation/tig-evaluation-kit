@@ -7,8 +7,10 @@ compares it with bks.json. Writes:
 
   results/per_instance.csv   one row per algorithm and instance
   results/summary.json       per-algorithm mean, standard deviation, extremes
-  results/gap_to_bks.png     bar chart (mean gap, +/- 1 standard deviation,
-                             one dot per instance)
+  results/gap_to_bks.png     two-panel chart: mean gap to the BKS distance
+                             (top) and mean vehicles used against the mean
+                             BKS fleet (bottom); +/- 1 standard deviation
+                             whiskers and one dot per instance in both
 
 The chart needs matplotlib; without it the CSV and JSON are still written.
 """
@@ -137,6 +139,7 @@ def summarize(config: dict, rows: list[dict], commit: str | None) -> dict:
     for algorithm in config["algorithms"]:
         mine = [row for row in rows if row["algorithm"] == algorithm["label"]]
         gaps = [row["gap_pct"] for row in mine if row["gap_pct"] is not None]
+        vehicles = [row["vehicles"] for row in mine if row["vehicles"] is not None]
         if not gaps:
             continue
         summary["algorithms"][algorithm["label"]] = {
@@ -152,7 +155,8 @@ def summarize(config: dict, rows: list[dict], commit: str | None) -> dict:
             "median_gap_pct": round(statistics.median(gaps), 3),
             "min_gap_pct": round(min(gaps), 3),
             "max_gap_pct": round(max(gaps), 3),
-            "mean_vehicles": round(statistics.mean(row["vehicles"] for row in mine if row["vehicles"]), 2),
+            "mean_vehicles": round(statistics.mean(vehicles), 2),
+            "std_vehicles": round(statistics.stdev(vehicles), 3) if len(vehicles) > 1 else 0.0,
             "mean_bks_vehicles": round(statistics.mean(row["bks_vehicles"] for row in mine), 2),
             "mean_solver_wallclock_ms": round(statistics.mean(row["solver_wallclock_ms"] for row in mine if row["solver_wallclock_ms"] is not None), 1),
         }
@@ -168,6 +172,31 @@ def write_outputs(rows: list[dict], summary: dict) -> None:
     (RESULTS / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
 
+def _style_axis(ax) -> None:
+    ax.set_facecolor(SURFACE)
+    ax.yaxis.grid(True, color=GRID, linewidth=1, zorder=0)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    for side in ("left", "bottom"):
+        ax.spines[side].set_color(GRID)
+    ax.tick_params(colors=TEXT_SECONDARY, length=0)
+
+
+def _bar_panel(ax, means: list[float], stds: list[float], per_instance: list[list[float]], fmt: str, suffix: str = "") -> None:
+    """Thin bars for the means, +/- 1 sd whiskers, one jittered dot per instance, mean label."""
+    positions = list(range(len(means)))
+    ax.bar(positions, means, width=0.32, color=SERIES, linewidth=0, zorder=2)
+    ax.errorbar(positions, means, yerr=stds, fmt="none", ecolor=TEXT_SECONDARY, elinewidth=1.5, capsize=6, capthick=1.5, zorder=3)
+    for index, values in enumerate(per_instance):
+        jitter = [index + 0.24 + 0.012 * (k - len(values) / 2) for k in range(len(values))]
+        ax.scatter(jitter, values, s=42, color=SERIES, edgecolor=SURFACE, linewidth=1.5, zorder=4)
+        above = means[index] >= 0
+        ax.annotate(format(means[index], fmt) + suffix, (index, means[index]), xytext=(-10, 4 if above else -4),
+                    textcoords="offset points", ha="right", va="bottom" if above else "top",
+                    fontsize=10, color=TEXT_PRIMARY, fontweight="bold")
+
+
 def plot(summary: dict, rows: list[dict]) -> bool:
     try:
         import matplotlib
@@ -179,46 +208,51 @@ def plot(summary: dict, rows: list[dict]) -> bool:
         return False
 
     labels = list(summary["algorithms"])
-    means = [summary["algorithms"][label]["mean_gap_pct"] for label in labels]
-    stds = [summary["algorithms"][label]["std_gap_pct"] for label in labels]
+    entries = [summary["algorithms"][label] for label in labels]
     ticks = []
-    for label in labels:
-        entry = summary["algorithms"][label]
+    for label, entry in zip(labels, entries):
         detail = f"{entry['id']} {entry['name']}"
         if entry.get("hyperparameters"):
             detail += "\n" + ", ".join(f"{key}={value}" for key, value in entry["hyperparameters"].items())
         ticks.append(f"{label}\n{detail}")
+    per_label = {label: [row for row in rows if row["algorithm"] == label and row["gap_pct"] is not None] for label in labels}
+    n = max(entry["instances"] for entry in entries)
+    bks_vehicles = statistics.mean(row["bks_vehicles"] for row in rows)
 
-    fig, ax = plt.subplots(figsize=(7.2, 4.6), dpi=150)
+    fig, (gap_ax, fleet_ax) = plt.subplots(
+        2, 1, sharex=True, figsize=(7.2, 7.4), dpi=150, gridspec_kw={"height_ratios": [3, 2], "hspace": 0.3},
+    )
     fig.patch.set_facecolor(SURFACE)
-    ax.set_facecolor(SURFACE)
-    positions = list(range(len(labels)))
-    ax.bar(positions, means, width=0.32, color=SERIES, linewidth=0, zorder=2)
-    ax.errorbar(positions, means, yerr=stds, fmt="none", ecolor=TEXT_SECONDARY, elinewidth=1.5, capsize=6, capthick=1.5, zorder=3)
-    for index, label in enumerate(labels):
-        gaps = [row["gap_pct"] for row in rows if row["algorithm"] == label and row["gap_pct"] is not None]
-        jitter = [index + 0.24 + 0.012 * (k - len(gaps) / 2) for k in range(len(gaps))]
-        ax.scatter(jitter, gaps, s=42, color=SERIES, edgecolor=SURFACE, linewidth=1.5, zorder=4)
-        ax.annotate(f"{means[index]:+.1f}%", (index, means[index]), xytext=(-10, 4 if means[index] >= 0 else -4), textcoords="offset points", ha="right", va="bottom" if means[index] >= 0 else "top", fontsize=10, color=TEXT_PRIMARY, fontweight="bold")
-    ax.axhline(0, color=TEXT_SECONDARY, linewidth=1, zorder=1)
-    ax.set_xticks(positions, ticks, fontsize=9, color=TEXT_PRIMARY)
-    ax.set_ylabel("Distance above best-known solution (%)", color=TEXT_PRIMARY)
-    ax.yaxis.grid(True, color=GRID, linewidth=1, zorder=0)
-    ax.set_axisbelow(True)
-    for side in ("top", "right"):
-        ax.spines[side].set_visible(False)
-    for side in ("left", "bottom"):
-        ax.spines[side].set_color(GRID)
-    ax.tick_params(colors=TEXT_SECONDARY, length=0)
-    n = max(summary["algorithms"][label]["instances"] for label in labels)
-    ax.set_title(
+
+    # Top panel: distance gap to the best-known solution.
+    _style_axis(gap_ax)
+    _bar_panel(gap_ax, [e["mean_gap_pct"] for e in entries], [e["std_gap_pct"] for e in entries],
+               [[row["gap_pct"] for row in per_label[label]] for label in labels], "+.1f", "%")
+    gap_ax.axhline(0, color=TEXT_SECONDARY, linewidth=1, zorder=1)
+    gap_ax.set_ylabel("Distance above best-known solution (%)", color=TEXT_PRIMARY)
+    gap_ax.set_title(
         f"Homberger-Gehring 1000-customer RC2: gap to BKS, {summary['timeout_seconds']} s per instance",
         loc="left", fontsize=11, color=TEXT_PRIMARY, pad=14,
     )
-    ax.text(0, 1.01, f"bar = mean over {n} instances, whisker = ±1 standard deviation, dots = instances",
-            transform=ax.transAxes, fontsize=8.5, color=TEXT_SECONDARY)
-    fig.tight_layout()
-    fig.savefig(RESULTS / "gap_to_bks.png", facecolor=SURFACE)
+    gap_ax.text(0, 1.01, f"bar = mean over {n} instances, whisker = ±1 standard deviation, dots = instances",
+                transform=gap_ax.transAxes, fontsize=8.5, color=TEXT_SECONDARY)
+
+    # Bottom panel: fleet size. TIG minimises distance only, the BKS minimises
+    # vehicles first, so a negative gap above is bought with extra vehicles here.
+    _style_axis(fleet_ax)
+    _bar_panel(fleet_ax, [e["mean_vehicles"] for e in entries], [e["std_vehicles"] for e in entries],
+               [[row["vehicles"] for row in per_label[label]] for label in labels], ".1f")
+    fleet_ax.axhline(bks_vehicles, color=TEXT_SECONDARY, linewidth=1.2, linestyle=(0, (4, 3)), zorder=1)
+    fleet_ax.set_ylim(bottom=0)
+    fleet_ax.set_xlim(-0.5, len(labels) - 0.5)
+    fleet_ax.set_ylabel("Vehicles in final solution", color=TEXT_PRIMARY)
+    fleet_ax.set_title(f"Vehicles used (dashed line = BKS mean, {bks_vehicles:.1f} vehicles)",
+                       loc="left", fontsize=11, color=TEXT_PRIMARY, pad=14)
+    fleet_ax.text(0, 1.01, "TIG minimises distance only; the BKS minimises vehicles first, so gains above cost vehicles",
+                  transform=fleet_ax.transAxes, fontsize=8.5, color=TEXT_SECONDARY)
+    fleet_ax.set_xticks(list(range(len(labels))), ticks, fontsize=9, color=TEXT_PRIMARY)
+
+    fig.savefig(RESULTS / "gap_to_bks.png", facecolor=SURFACE, bbox_inches="tight", pad_inches=0.15)
     return True
 
 
@@ -241,8 +275,9 @@ def markdown_table(summary: dict, rows: list[dict]) -> str:
     cells = []
     for label in labels:
         s = summary["algorithms"][label]
-        cells += [f"**{s['mean_gap_pct']:+.2f}% ± {s['std_gap_pct']:.2f}**", f"{s['mean_vehicles']:.1f}"]
-    lines.append("| **mean ± sd** | | | " + " | ".join(cells) + " |")
+        cells += [f"**{s['mean_gap_pct']:+.2f}% ± {s['std_gap_pct']:.2f}**", f"**{s['mean_vehicles']:.1f} ± {s['std_vehicles']:.1f}**"]
+    bks_vehicles = statistics.mean(row["bks_vehicles"] for row in rows)
+    lines.append(f"| **mean ± sd** | **{bks_vehicles:.1f}** | | " + " | ".join(cells) + " |")
     return "\n".join(lines)
 
 
