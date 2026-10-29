@@ -1,0 +1,50 @@
+{
+  "challenge": "c002",
+  "collection": {
+    "name": "Homberger-Gehring 1000-customer VRPTW benchmark, class RC2",
+    "url": "https://www.sintef.no/globalassets/project/top/vrptw/homberger/1000/homberger_1000_customer_instances.zip",
+    "zip_sha256": "2e96845ee870ef21f833a216a79866e812232d3d922db3e14c30790f06780a81",
+    "members": [
+      "RC2_10_1.TXT",
+      "RC2_10_2.TXT",
+      "RC2_10_3.TXT",
+      "RC2_10_4.TXT",
+      "RC2_10_5.TXT",
+      "RC2_10_6.TXT",
+      "RC2_10_7.TXT",
+      "RC2_10_8.TXT",
+      "RC2_10_9.TXT",
+      "RC2_10_10.TXT"
+    ],
+    "format": "solomon-vrptw"
+  },
+  "algorithms": [
+    {
+      "label": "hgs",
+      "id": "c002_a089",
+      "name": "hgs_v1",
+      "hyperparameters": null,
+      "note": "as shipped: the default preset is exploration_level 0 (single local search), which stops in well under a second"
+    },
+    {
+      "label": "hgs_explore5",
+      "id": "c002_a089",
+      "name": "hgs_v1",
+      "hyperparameters": {
+        "exploration_level": 5
+      },
+      "note": "same algorithm at the author's deepest preset so that it uses the time budget"
+    },
+    {
+      "label": "hgs_advance",
+      "id": "c002_a110",
+      "name": "hgs_advance",
+      "hyperparameters": null,
+      "note": "as shipped: default preset is exploration_level 4"
+    }
+  ],
+  "timeout_seconds": 30,
+  "workers": 1,
+  "repetitions": 1,
+  "algorithm_seed": "default_seed"
+}

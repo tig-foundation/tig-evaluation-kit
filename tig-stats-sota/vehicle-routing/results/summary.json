@@ -1,0 +1,65 @@
+{
+  "generated": "2026-10-29T12:07:27+00:00",
+  "timeout_seconds": 30,
+  "workers": 1,
+  "repetitions": 1,
+  "algorithm_seed": "default_seed",
+  "monorepo_commit": "cd6090b8439ecd5b0f937c8d7bf3c35a46ff6dcb",
+  "note": "hgs_v1 at its default preset stops after one local search; hgs_explore5 is the same code with exploration_level 5",
+  "metric": "percentage by which the real-valued Euclidean length of the final solution exceeds the BKS distance",
+  "algorithms": {
+    "hgs": {
+      "id": "c002_a089",
+      "name": "hgs_v1",
+      "hyperparameters": null,
+      "instances": 10,
+      "with_solution": 10,
+      "timeouts_with_solution": 0,
+      "failures": 0,
+      "mean_gap_pct": 10.255,
+      "std_gap_pct": 4.942,
+      "median_gap_pct": 11.044,
+      "min_gap_pct": 3.075,
+      "max_gap_pct": 18.125,
+      "mean_vehicles": 21.3,
+      "mean_bks_vehicles": 18.2,
+      "mean_solver_wallclock_ms": 320.6
+    },
+    "hgs_explore5": {
+      "id": "c002_a089",
+      "name": "hgs_v1",
+      "hyperparameters": {
+        "exploration_level": 5
+      },
+      "instances": 10,
+      "with_solution": 10,
+      "timeouts_with_solution": 10,
+      "failures": 0,
+      "mean_gap_pct": 5.962,
+      "std_gap_pct": 4.06,
+      "median_gap_pct": 6.543,
+      "min_gap_pct": -0.697,
+      "max_gap_pct": 11.89,
+      "mean_vehicles": 26.2,
+      "mean_bks_vehicles": 18.2,
+      "mean_solver_wallclock_ms": 30007.7
+    },
+    "hgs_advance": {
+      "id": "c002_a110",
+      "name": "hgs_advance",
+      "hyperparameters": null,
+      "instances": 10,
+      "with_solution": 10,
+      "timeouts_with_solution": 8,
+      "failures": 0,
+      "mean_gap_pct": -0.703,
+      "std_gap_pct": 3.006,
+      "median_gap_pct": -0.024,
+      "min_gap_pct": -5.216,
+      "max_gap_pct": 3.321,
+      "mean_vehicles": 23.4,
+      "mean_bks_vehicles": 18.2,
+      "mean_solver_wallclock_ms": 29403.1
+    }
+  }
+}

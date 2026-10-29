@@ -1,0 +1,59 @@
+{
+  "source": {
+    "url": "https://www.sintef.no/projectweb/top/vrptw/homberger-benchmark/1000-customers/",
+    "retrieved": "2026-10-29",
+    "note": "Best-known solutions as listed by SINTEF; distances are real-valued Euclidean, objective is vehicles first then distance."
+  },
+  "instances": {
+    "rc2_10_1": {
+      "vehicles": 20,
+      "distance": 30276.27,
+      "reference": "CAINIAO"
+    },
+    "rc2_10_2": {
+      "vehicles": 18,
+      "distance": 26104.09,
+      "reference": "SCR"
+    },
+    "rc2_10_3": {
+      "vehicles": 18,
+      "distance": 19911.48,
+      "reference": "SCR"
+    },
+    "rc2_10_4": {
+      "vehicles": 18,
+      "distance": 15693.28,
+      "reference": "CAINIAO"
+    },
+    "rc2_10_5": {
+      "vehicles": 18,
+      "distance": 27067.04,
+      "reference": "SCR"
+    },
+    "rc2_10_6": {
+      "vehicles": 18,
+      "distance": 26741.27,
+      "reference": "CAINIAO"
+    },
+    "rc2_10_7": {
+      "vehicles": 18,
+      "distance": 24999.66,
+      "reference": "SCR"
+    },
+    "rc2_10_8": {
+      "vehicles": 18,
+      "distance": 23595.33,
+      "reference": "SCR"
+    },
+    "rc2_10_9": {
+      "vehicles": 18,
+      "distance": 22919.42,
+      "reference": "SCR"
+    },
+    "rc2_10_10": {
+      "vehicles": 18,
+      "distance": 21834.94,
+      "reference": "SCR"
+    }
+  }
+}
