@@ -132,7 +132,7 @@ def summarize(config: dict, rows: list[dict], commit: str | None) -> dict:
         "repetitions": config["repetitions"],
         "algorithm_seed": config["algorithm_seed"],
         "monorepo_commit": commit,
-        "note": "hgs_v1 at its default preset stops after one local search; hgs_explore5 is the same code with exploration_level 5",
+        "note": "hgs_explore5 is hgs_v1 with exploration_level 5 (its shipped default, level 0, stops after one local search); hgs_epure runs with the hyperparameters TIG benchmarkers use on the n_nodes=1000 track",
         "metric": "percentage by which the real-valued Euclidean length of the final solution exceeds the BKS distance",
         "algorithms": {},
     }
@@ -146,6 +146,7 @@ def summarize(config: dict, rows: list[dict], commit: str | None) -> dict:
             "id": algorithm["id"],
             "name": algorithm["name"],
             "hyperparameters": algorithm.get("hyperparameters"),
+            "chart_note": algorithm.get("chart_note"),
             "instances": len(mine),
             "with_solution": len(gaps),
             "timeouts_with_solution": sum(1 for row in mine if row["status"] == "timeout_with_solution"),
@@ -212,7 +213,9 @@ def plot(summary: dict, rows: list[dict]) -> bool:
     ticks = []
     for label, entry in zip(labels, entries):
         detail = f"{entry['id']} {entry['name']}"
-        if entry.get("hyperparameters"):
+        if entry.get("chart_note"):
+            detail += "\n" + entry["chart_note"]
+        elif entry.get("hyperparameters"):
             detail += "\n" + ", ".join(f"{key}={value}" for key, value in entry["hyperparameters"].items())
         ticks.append(f"{label}\n{detail}")
     per_label = {label: [row for row in rows if row["algorithm"] == label and row["gap_pct"] is not None] for label in labels}
@@ -220,7 +223,7 @@ def plot(summary: dict, rows: list[dict]) -> bool:
     bks_vehicles = statistics.mean(row["bks_vehicles"] for row in rows)
 
     fig, (gap_ax, fleet_ax) = plt.subplots(
-        2, 1, sharex=True, figsize=(7.2, 7.4), dpi=150, gridspec_kw={"height_ratios": [3, 2], "hspace": 0.3},
+        2, 1, sharex=True, figsize=(8.0, 7.4), dpi=150, gridspec_kw={"height_ratios": [3, 2], "hspace": 0.3},
     )
     fig.patch.set_facecolor(SURFACE)
 

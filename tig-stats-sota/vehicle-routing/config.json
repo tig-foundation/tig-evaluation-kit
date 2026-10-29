@@ -1,5 +1,7 @@
 {
   "challenge": "c002",
+  "monorepo_commit": "d33946ddeaf89240254b0661aba70859f7868fe0",
+  "monorepo_commit_note": "tig-monorepo main on 2026-10-29; the first commit the kit's pinned main was advanced to that contains c002_a120 (hgs_epure, merged 2026-10-26)",
   "collection": {
     "name": "Homberger-Gehring 1000-customer VRPTW benchmark, class RC2",
     "url": "https://www.sintef.no/globalassets/project/top/vrptw/homberger/1000/homberger_1000_customer_instances.zip",
@@ -20,27 +22,41 @@
   },
   "algorithms": [
     {
-      "label": "hgs",
-      "id": "c002_a089",
-      "name": "hgs_v1",
-      "hyperparameters": null,
-      "note": "as shipped: the default preset is exploration_level 0 (single local search), which stops in well under a second"
-    },
-    {
       "label": "hgs_explore5",
       "id": "c002_a089",
       "name": "hgs_v1",
       "hyperparameters": {
         "exploration_level": 5
       },
-      "note": "same algorithm at the author's deepest preset so that it uses the time budget"
+      "chart_note": "exploration_level=5",
+      "note": "hgs_v1 at the author's deepest preset; its shipped default (exploration_level 0) is a single local search that stops in under a second"
     },
     {
       "label": "hgs_advance",
       "id": "c002_a110",
       "name": "hgs_advance",
       "hyperparameters": null,
+      "chart_note": "as shipped (level 4)",
       "note": "as shipped: default preset is exploration_level 4"
+    },
+    {
+      "label": "hgs_epure",
+      "id": "c002_a120",
+      "name": "hgs_epure",
+      "hyperparameters": {
+        "exploration_level": 4,
+        "allow_swap3": true,
+        "granularity": 30,
+        "granularity2": 40,
+        "swapstar_capa_filter": 0.5,
+        "max_credit_deterioration": 20,
+        "decomp_target_size": 200,
+        "decomp_nb_phases": 12,
+        "l4_permille": 600
+      },
+      "chart_note": "TIG n_nodes=1000 settings",
+      "note": "the parameters TIG benchmarkers run on the n_nodes=1000 track: the majority precommit hyperparameters {\"allow_swap3\": true, \"exploration_level\": 4} (see tig_hyperparameters.json) plus the algorithm's built-in 1000-node track profile, written out because that profile keys on exactly 1000 nodes and the Homberger instances have 1001 (depot plus 1000 customers)",
+      "hyperparameters_source": "tig_hyperparameters.json"
     }
   ],
   "timeout_seconds": 30,

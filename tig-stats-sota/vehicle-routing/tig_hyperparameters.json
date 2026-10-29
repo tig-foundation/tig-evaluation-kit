@@ -1,0 +1,182 @@
+{
+  "algorithm_id": "c002_a120",
+  "algorithm_name": "hgs_epure",
+  "source": {
+    "api": "https://mainnet-api.tig.foundation (get-block, get-algorithms, get-benchmarks per player)",
+    "retrieved": "2026-10-29",
+    "block_id": "13147a622aa467635e49d6c073a2b52a",
+    "block_height": 1405410,
+    "round": 140,
+    "players_queried": 10,
+    "precommit_block_range": [
+      1405290,
+      1405409
+    ],
+    "note": "every precommit for c002_a120 returned by get-benchmarks for the players listed as qualifiers of c002_a120 on the queried block; null and {} both mean the algorithm's built-in defaults"
+  },
+  "precommits_by_track": {
+    "n_nodes=1000": [
+      {
+        "hyperparameters": {
+          "allow_swap3": true,
+          "exploration_level": 4
+        },
+        "precommits": 56,
+        "latest_block_started": 1405405
+      },
+      {
+        "hyperparameters": null,
+        "precommits": 14,
+        "latest_block_started": 1405406
+      },
+      {
+        "hyperparameters": {
+          "allow_swap3": true,
+          "decomp_nb_phases": 24,
+          "exploration_level": 4,
+          "granularity": 10,
+          "granularity2": 20,
+          "lambda": 10,
+          "max_it_noimprov": 160,
+          "max_it_total": 480,
+          "mu": 10
+        },
+        "precommits": 2,
+        "latest_block_started": 1405382
+      }
+    ],
+    "n_nodes=600": [
+      {
+        "hyperparameters": {
+          "allow_swap3": true,
+          "decomp_nb_phases": 8,
+          "decomp_target_size": 200,
+          "exploration_level": 4,
+          "granularity": 30,
+          "granularity2": 40,
+          "max_credit_deterioration": 20,
+          "swapstar_capa_filter": 0.5
+        },
+        "precommits": 52,
+        "latest_block_started": 1405406
+      },
+      {
+        "hyperparameters": {
+          "allow_swap3": true,
+          "decomp_nb_phases": 29,
+          "decomp_target_size": 175,
+          "exploration_level": 4,
+          "granularity": 32,
+          "granularity2": 40,
+          "max_credit_deterioration": 15,
+          "swapstar_capa_filter": 0.45
+        },
+        "precommits": 21,
+        "latest_block_started": 1405406
+      },
+      {
+        "hyperparameters": null,
+        "precommits": 6,
+        "latest_block_started": 1405396
+      }
+    ],
+    "n_nodes=700": [
+      {
+        "hyperparameters": {},
+        "precommits": 60,
+        "latest_block_started": 1405409
+      },
+      {
+        "hyperparameters": null,
+        "precommits": 28,
+        "latest_block_started": 1405408
+      },
+      {
+        "hyperparameters": {
+          "allow_swap3": true,
+          "decomp_nb_phases": 32,
+          "decomp_target_size": 200,
+          "exploration_level": 4,
+          "granularity": 25,
+          "granularity2": 35,
+          "lambda": 10,
+          "max_credit_deterioration": 40,
+          "max_it_noimprov": 180,
+          "max_it_total": 660,
+          "mu": 10,
+          "swapstar_capa_filter": 0.6
+        },
+        "precommits": 5,
+        "latest_block_started": 1405392
+      }
+    ],
+    "n_nodes=800": [
+      {
+        "hyperparameters": {},
+        "precommits": 32,
+        "latest_block_started": 1405395
+      },
+      {
+        "hyperparameters": null,
+        "precommits": 32,
+        "latest_block_started": 1405404
+      },
+      {
+        "hyperparameters": {
+          "allow_swap3": true,
+          "decomp_nb_phases": 29,
+          "decomp_target_size": 200,
+          "exploration_level": 4,
+          "granularity": 32,
+          "granularity2": 40,
+          "max_credit_deterioration": 15,
+          "swapstar_capa_filter": 0.45
+        },
+        "precommits": 13,
+        "latest_block_started": 1405405
+      }
+    ],
+    "n_nodes=900": [
+      {
+        "hyperparameters": {
+          "allow_swap3": true,
+          "decomp_nb_phases": 30,
+          "decomp_target_size": 200,
+          "exploration_level": 4,
+          "granularity": 40,
+          "granularity2": 50,
+          "max_credit_deterioration": 40,
+          "swapstar_capa_filter": 0.6
+        },
+        "precommits": 50,
+        "latest_block_started": 1405401
+      },
+      {
+        "hyperparameters": null,
+        "precommits": 18,
+        "latest_block_started": 1405406
+      },
+      {
+        "hyperparameters": {
+          "allow_swap3": true,
+          "decomp_nb_phases": 12,
+          "decomp_target_size": 200,
+          "exploration_level": 4,
+          "granularity": 30,
+          "granularity2": 40,
+          "max_credit_deterioration": 20,
+          "swapstar_capa_filter": 0.5
+        },
+        "precommits": 11,
+        "latest_block_started": 1405404
+      },
+      {
+        "hyperparameters": {
+          "exploration_level": 2
+        },
+        "precommits": 4,
+        "latest_block_started": 1405386
+      }
+    ]
+  }
+}

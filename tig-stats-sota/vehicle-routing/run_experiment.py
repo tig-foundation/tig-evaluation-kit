@@ -2,12 +2,20 @@
 """Run TIG vehicle-routing algorithms on the Homberger-Gehring 1000-customer RC2 set.
 
 Steps (each is skipped when its output already exists; see --force-*):
-  1. download the SINTEF archive into data/ and verify its SHA-256;
-  2. extract only the RC2_10_* members listed in config.json;
-  3. import them with `tig.py import --format solomon-vrptw` into data/dataset;
-  4. run every algorithm in config.json with the configured solver timeout,
+  1. initialise the kit's monorepo cache under data/cache (or --cache-dir) and
+     check that its pinned commit is the one recorded in config.json;
+  2. download the SINTEF archive into data/ and verify its SHA-256;
+  3. extract only the RC2_10_* members listed in config.json;
+  4. import them with `tig.py import --format solomon-vrptw` into data/dataset;
+  5. run every algorithm in config.json with the configured solver timeout,
      saving the final solution of each instance under runs/<label>/;
-  5. hand over to analyze.py, which writes results/ (CSV, JSON, figure).
+  6. hand over to analyze.py, which writes results/ (CSV, JSON, figure).
+
+The experiment keeps its own cache because hgs_epure (c002_a120) is newer than
+the commit most kit installations are pinned to, and `tig.py source sync` on
+the default cache would move every other dataset you generate afterwards.
+Pass --cache-dir to use another cache, for example the default one after you
+have synced it yourself.
 
 Only results/ is meant to be committed. data/ and runs/ are ignored by Git.
 """
@@ -29,6 +37,7 @@ REPO = HERE.parents[1]
 CONFIG_PATH = HERE / "config.json"
 DATA = HERE / "data"
 RUNS = HERE / "runs"
+DEFAULT_CACHE = DATA / "cache"
 
 
 def log(message: str) -> None:
@@ -76,20 +85,42 @@ def extract(config: dict, archive: Path) -> Path:
     return instances
 
 
-def tig(*arguments: str) -> None:
-    command = [sys.executable, str(REPO / "tig.py"), *arguments]
+def tig(cache_dir: Path, *arguments: str, capture: bool = False) -> str:
+    command = [sys.executable, str(REPO / "tig.py"), *arguments, "--cache-dir", str(cache_dir)]
     log(" ".join(command[1:]))
-    subprocess.run(command, check=True, cwd=REPO)
+    completed = subprocess.run(command, check=True, cwd=REPO, capture_output=capture, text=True)
+    return completed.stdout if capture else ""
 
 
-def import_dataset(config: dict, instances: Path, force: bool) -> Path:
+def ensure_source(config: dict, cache_dir: Path, sync: bool) -> str:
+    """Initialise or sync the cache and return the commit the run will use."""
+    status = json.loads(tig(cache_dir, "source", "status", "--json", capture=True))
+    if sync or not status.get("initialized"):
+        tig(cache_dir, "source", "sync")
+        status = json.loads(tig(cache_dir, "source", "status", "--json", capture=True))
+    commit = status["commit"]
+    expected = config["monorepo_commit"]
+    if commit != expected:
+        log(f"WARNING: cache {cache_dir} is pinned to {commit}, config.json records {expected}; "
+            "results will be produced at the pinned commit (pass --sync to move the cache to current main)")
+    else:
+        log(f"monorepo commit {commit}")
+    return commit
+
+
+def import_dataset(config: dict, instances: Path, cache_dir: Path, commit: str, force: bool) -> Path:
     dataset = DATA / "dataset"
-    if (dataset / "dataset.json").exists() and not force:
-        log(f"using existing dataset {dataset.relative_to(HERE)}")
-        return dataset
+    manifest = dataset / "dataset.json"
+    if manifest.exists() and not force:
+        imported_at = json.loads(manifest.read_text(encoding="utf-8")).get("monorepo_commit")
+        if imported_at == commit:
+            log(f"using existing dataset {dataset.relative_to(HERE)}")
+            return dataset
+        log(f"dataset was imported at {imported_at}, re-importing at {commit}")
     if dataset.exists():
         shutil.rmtree(dataset)
     tig(
+        cache_dir,
         "import",
         "--challenge", config["challenge"],
         "--input", str(instances),
@@ -105,16 +136,22 @@ def expected_results(config: dict, dataset: Path) -> int:
     return len(manifest["instances"]) * int(config["repetitions"])
 
 
-def run_algorithm(config: dict, algorithm: dict, dataset: Path, force: bool) -> Path:
+def run_algorithm(config: dict, algorithm: dict, dataset: Path, cache_dir: Path, commit: str, force: bool) -> Path:
     output = RUNS / algorithm["label"]
     results = output / "results.jsonl"
     wanted = expected_results(config, dataset)
     if force and output.exists():
         shutil.rmtree(output)
     if results.exists():
-        done = sum(1 for line in results.read_text(encoding="utf-8").splitlines() if line.strip())
-        if done >= wanted:
-            log(f"{algorithm['label']}: {done} results already present, skipping")
+        records = [json.loads(line) for line in results.read_text(encoding="utf-8").splitlines() if line.strip()]
+        stale = {r["algorithm"]["monorepo_commit"] for r in records} - {commit}
+        if stale:
+            raise SystemExit(
+                f"{output.relative_to(HERE)} holds results from monorepo commit {', '.join(sorted(stale))}, "
+                f"not {commit}; rerun with --force-run to replace them"
+            )
+        if len(records) >= wanted:
+            log(f"{algorithm['label']}: {len(records)} results already present, skipping")
             return output
     arguments = [
         "run",
@@ -132,7 +169,7 @@ def run_algorithm(config: dict, algorithm: dict, dataset: Path, force: bool) -> 
     if output.exists():
         log(f"{algorithm['label']}: resuming interrupted run")
         arguments.append("--resume")
-    tig(*arguments)
+    tig(cache_dir, *arguments)
     return output
 
 
@@ -143,16 +180,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--force-run", action="store_true", help="discard existing runs and solve again")
     parser.add_argument("--skip-analysis", action="store_true", help="do not run analyze.py afterwards")
     parser.add_argument("--only", metavar="LABEL", action="append", help="run only this algorithm label (repeatable)")
+    parser.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE,
+                        help=f"kit cache to build and run from (default: {DEFAULT_CACHE.relative_to(HERE)})")
+    parser.add_argument("--sync", action="store_true", help="move the cache to current monorepo main before running")
     options = parser.parse_args(argv)
 
     config = load_config()
+    commit = ensure_source(config, options.cache_dir, options.sync)
     archive = download(config, options.force_download)
     instances = extract(config, archive)
-    dataset = import_dataset(config, instances, options.force_import)
+    dataset = import_dataset(config, instances, options.cache_dir, commit, options.force_import)
     for algorithm in config["algorithms"]:
         if options.only and algorithm["label"] not in options.only:
             continue
-        run_algorithm(config, algorithm, dataset, options.force_run)
+        run_algorithm(config, algorithm, dataset, options.cache_dir, commit, options.force_run)
     if options.skip_analysis:
         return 0
     sys.path.insert(0, str(HERE))
