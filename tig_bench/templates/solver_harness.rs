@@ -13,6 +13,18 @@ __ALGORITHM_IMPORT__
 
 const EVENT_PREFIX: &str = "TIG_EVENT\t";
 
+/// Remaining fuel as seen by fuel-aware algorithms.
+///
+/// `tig-runtime` sets this symbol to the benchmark's fuel budget and its
+/// instrumentation decrements it while the algorithm runs; algorithms declare
+/// it as `extern "C" { static __fuel_remaining: u64; }` and read it to pace
+/// themselves. This runner does not meter fuel. It exports the symbol only so
+/// that such algorithms link, and leaves it at the network's maximum fuel
+/// budget for the whole run, so they never observe fuel running out and stop
+/// on their own criteria or the solver timeout.
+#[no_mangle]
+pub static mut __fuel_remaining: u64 = 5_000_000_000_000;
+
 #[derive(Deserialize)]
 struct InstanceEnvelope {
     challenge: Value,

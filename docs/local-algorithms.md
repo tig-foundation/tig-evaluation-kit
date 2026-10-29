@@ -85,3 +85,12 @@ still have a raw objective in that result.
 
 Local modules execute as trusted native code. Process isolation contains
 ordinary crashes and timeouts but is not a security sandbox.
+
+## Fuel
+
+The runner does not meter fuel. The solver harness exports the
+`__fuel_remaining` symbol that `tig-runtime` provides, so official or local
+code declaring `extern "C" { static __fuel_remaining: u64; }` links, but the
+value stays at a constant full budget (the network's maximum, 5 × 10^12) for
+the whole run. Fuel-based pacing therefore never triggers; use the solver
+timeout to bound running time.

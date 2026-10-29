@@ -19,6 +19,9 @@ This is an offline benchmarking tool, not a copy of the TIG network runtime. It
 does not meter fuel, recreate live network instances, or calculate TIG quality.
 It reports the raw result so you can compare it with a best-known solution,
 another solver, or the TIG baseline in whatever way suits your experiment.
+Algorithms that read the runtime's `__fuel_remaining` symbol still build and
+run: the runner exports it as a constant full budget, so those algorithms stop
+on their own criteria or on the solver timeout rather than on fuel.
 
 ## What you need
 
