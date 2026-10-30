@@ -184,14 +184,6 @@ def _style_axis(ax) -> None:
     ax.tick_params(colors=TEXT_SECONDARY, length=0)
 
 
-def _spread(count: int, width: float = 0.12) -> list[float]:
-    """Deterministic x offsets in [-width, width] that keep rank-adjacent dots apart."""
-    if count < 2:
-        return [0.0] * count
-    step = 7 if count % 7 else 3  # coprime with count for every count used here
-    return [-width + 2 * width * ((k * step) % count) / (count - 1) for k in range(count)]
-
-
 def plot(summary: dict, rows: list[dict]) -> bool:
     try:
         import matplotlib
@@ -223,11 +215,11 @@ def plot(summary: dict, rows: list[dict]) -> bool:
     _style_axis(ax)
     ax.axhline(0, color=TEXT_SECONDARY, linewidth=1, zorder=1)
 
-    # One dot per instance, spread a little so equal gaps stay visible.
+    # One dot per instance on the configuration's centre line; the surface-coloured
+    # edge keeps dots with near-equal gaps distinguishable.
     for index, label in enumerate(labels):
-        values = sorted(row["gap_pct"] for row in rows if row["algorithm"] == label and row["gap_pct"] is not None)
-        offsets = _spread(len(values))
-        ax.scatter([index + dx for dx in offsets], values, s=46, color=SERIES, edgecolor=SURFACE, linewidth=1.5, zorder=3)
+        values = [row["gap_pct"] for row in rows if row["algorithm"] == label and row["gap_pct"] is not None]
+        ax.scatter([index] * len(values), values, s=46, color=SERIES, edgecolor=SURFACE, linewidth=1.5, zorder=3)
 
     # Mean with a +/- 1 standard deviation whisker, drawn over the dots.
     ax.errorbar(positions, means, yerr=stds, fmt="none", ecolor=TEXT_PRIMARY, elinewidth=1.6, capsize=7, capthick=1.6, zorder=4)
