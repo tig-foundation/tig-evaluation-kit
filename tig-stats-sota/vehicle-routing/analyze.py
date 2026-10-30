@@ -7,10 +7,10 @@ compares it with bks.json. Writes:
 
   results/per_instance.csv   one row per algorithm and instance
   results/summary.json       per-algorithm mean, standard deviation, extremes
-  results/gap_to_bks.png     two-panel chart: mean gap to the BKS distance
-                             (top) and mean vehicles used against the mean
-                             BKS fleet (bottom); +/- 1 standard deviation
-                             whiskers and one dot per instance in both
+  results/gap_to_bks.png     chart: one dot per instance for the gap to the
+                             BKS distance, a marker at the mean with a
+                             +/- 1 standard deviation whisker, and the mean
+                             fleet size noted under each configuration
 
 The chart needs matplotlib; without it the CSV and JSON are still written.
 """
@@ -184,18 +184,12 @@ def _style_axis(ax) -> None:
     ax.tick_params(colors=TEXT_SECONDARY, length=0)
 
 
-def _bar_panel(ax, means: list[float], stds: list[float], per_instance: list[list[float]], fmt: str, suffix: str = "") -> None:
-    """Thin bars for the means, +/- 1 sd whiskers, one jittered dot per instance, mean label."""
-    positions = list(range(len(means)))
-    ax.bar(positions, means, width=0.32, color=SERIES, linewidth=0, zorder=2)
-    ax.errorbar(positions, means, yerr=stds, fmt="none", ecolor=TEXT_SECONDARY, elinewidth=1.5, capsize=6, capthick=1.5, zorder=3)
-    for index, values in enumerate(per_instance):
-        jitter = [index + 0.24 + 0.012 * (k - len(values) / 2) for k in range(len(values))]
-        ax.scatter(jitter, values, s=42, color=SERIES, edgecolor=SURFACE, linewidth=1.5, zorder=4)
-        above = means[index] >= 0
-        ax.annotate(format(means[index], fmt) + suffix, (index, means[index]), xytext=(-10, 4 if above else -4),
-                    textcoords="offset points", ha="right", va="bottom" if above else "top",
-                    fontsize=10, color=TEXT_PRIMARY, fontweight="bold")
+def _spread(count: int, width: float = 0.12) -> list[float]:
+    """Deterministic x offsets in [-width, width] that keep rank-adjacent dots apart."""
+    if count < 2:
+        return [0.0] * count
+    step = 7 if count % 7 else 3  # coprime with count for every count used here
+    return [-width + 2 * width * ((k * step) % count) / (count - 1) for k in range(count)]
 
 
 def plot(summary: dict, rows: list[dict]) -> bool:
@@ -210,6 +204,7 @@ def plot(summary: dict, rows: list[dict]) -> bool:
 
     labels = list(summary["algorithms"])
     entries = [summary["algorithms"][label] for label in labels]
+    positions = list(range(len(labels)))
     ticks = []
     for label, entry in zip(labels, entries):
         detail = f"{entry['id']} {entry['name']}"
@@ -218,42 +213,45 @@ def plot(summary: dict, rows: list[dict]) -> bool:
         elif entry.get("hyperparameters"):
             detail += "\n" + ", ".join(f"{key}={value}" for key, value in entry["hyperparameters"].items())
         ticks.append(f"{label}\n{detail}")
-    per_label = {label: [row for row in rows if row["algorithm"] == label and row["gap_pct"] is not None] for label in labels}
     n = max(entry["instances"] for entry in entries)
     bks_vehicles = statistics.mean(row["bks_vehicles"] for row in rows)
+    means = [entry["mean_gap_pct"] for entry in entries]
+    stds = [entry["std_gap_pct"] for entry in entries]
 
-    fig, (gap_ax, fleet_ax) = plt.subplots(
-        2, 1, sharex=True, figsize=(8.0, 7.4), dpi=150, gridspec_kw={"height_ratios": [3, 2], "hspace": 0.3},
-    )
+    fig, ax = plt.subplots(figsize=(8.0, 5.6), dpi=150)
     fig.patch.set_facecolor(SURFACE)
+    _style_axis(ax)
+    ax.axhline(0, color=TEXT_SECONDARY, linewidth=1, zorder=1)
 
-    # Top panel: distance gap to the best-known solution.
-    _style_axis(gap_ax)
-    _bar_panel(gap_ax, [e["mean_gap_pct"] for e in entries], [e["std_gap_pct"] for e in entries],
-               [[row["gap_pct"] for row in per_label[label]] for label in labels], "+.1f", "%")
-    gap_ax.axhline(0, color=TEXT_SECONDARY, linewidth=1, zorder=1)
-    gap_ax.set_ylabel("Distance above best-known solution (%)", color=TEXT_PRIMARY)
-    gap_ax.set_title(
+    # One dot per instance, spread a little so equal gaps stay visible.
+    for index, label in enumerate(labels):
+        values = sorted(row["gap_pct"] for row in rows if row["algorithm"] == label and row["gap_pct"] is not None)
+        offsets = _spread(len(values))
+        ax.scatter([index + dx for dx in offsets], values, s=46, color=SERIES, edgecolor=SURFACE, linewidth=1.5, zorder=3)
+
+    # Mean with a +/- 1 standard deviation whisker, drawn over the dots.
+    ax.errorbar(positions, means, yerr=stds, fmt="none", ecolor=TEXT_PRIMARY, elinewidth=1.6, capsize=7, capthick=1.6, zorder=4)
+    ax.scatter(positions, means, marker="D", s=64, color=TEXT_PRIMARY, edgecolor=SURFACE, linewidth=1.5, zorder=5)
+    for index, (mean, entry) in enumerate(zip(means, entries)):
+        ax.annotate(f"{mean:+.1f}%", (index, mean), xytext=(-30, 0), textcoords="offset points",
+                    ha="right", va="center", fontsize=10, color=TEXT_PRIMARY, fontweight="bold")
+        # Fleet size sits between the axis and the tick label of its configuration.
+        ax.annotate(f"mean fleet {entry['mean_vehicles']:.1f} vehicles", (index, 0),
+                    xycoords=("data", "axes fraction"), xytext=(0, -7), textcoords="offset points",
+                    ha="center", va="top", fontsize=9, color=TEXT_PRIMARY)
+
+    ax.set_xlim(-0.6, len(labels) - 0.4)
+    ax.set_xticks(positions, ticks, fontsize=9, color=TEXT_SECONDARY)
+    ax.tick_params(axis="x", pad=24)
+    ax.set_ylabel("Distance above best-known solution (%)", color=TEXT_PRIMARY)
+    ax.set_title(
         f"Homberger-Gehring 1000-customer RC2: gap to BKS, {summary['timeout_seconds']} s per instance",
-        loc="left", fontsize=11, color=TEXT_PRIMARY, pad=14,
+        loc="left", fontsize=11, color=TEXT_PRIMARY, pad=32,
     )
-    gap_ax.text(0, 1.01, f"bar = mean over {n} instances, whisker = ±1 standard deviation, dots = instances",
-                transform=gap_ax.transAxes, fontsize=8.5, color=TEXT_SECONDARY)
-
-    # Bottom panel: fleet size. TIG minimises distance only, the BKS minimises
-    # vehicles first, so a negative gap above is bought with extra vehicles here.
-    _style_axis(fleet_ax)
-    _bar_panel(fleet_ax, [e["mean_vehicles"] for e in entries], [e["std_vehicles"] for e in entries],
-               [[row["vehicles"] for row in per_label[label]] for label in labels], ".1f")
-    fleet_ax.axhline(bks_vehicles, color=TEXT_SECONDARY, linewidth=1.2, linestyle=(0, (4, 3)), zorder=1)
-    fleet_ax.set_ylim(bottom=0)
-    fleet_ax.set_xlim(-0.5, len(labels) - 0.5)
-    fleet_ax.set_ylabel("Vehicles in final solution", color=TEXT_PRIMARY)
-    fleet_ax.set_title(f"Vehicles used (dashed line = BKS mean, {bks_vehicles:.1f} vehicles)",
-                       loc="left", fontsize=11, color=TEXT_PRIMARY, pad=14)
-    fleet_ax.text(0, 1.01, "TIG minimises distance only; the BKS minimises vehicles first, so gains above cost vehicles",
-                  transform=fleet_ax.transAxes, fontsize=8.5, color=TEXT_SECONDARY)
-    fleet_ax.set_xticks(list(range(len(labels))), ticks, fontsize=9, color=TEXT_PRIMARY)
+    ax.text(0, 1.02,
+            f"dot = instance, diamond = mean over {n} instances, whisker = ±1 standard deviation\n"
+            f"BKS fleet mean {bks_vehicles:.1f} vehicles; the BKS minimises vehicles first, TIG minimises distance only",
+            transform=ax.transAxes, fontsize=8.5, color=TEXT_SECONDARY, va="bottom", linespacing=1.5)
 
     fig.savefig(RESULTS / "gap_to_bks.png", facecolor=SURFACE, bbox_inches="tight", pad_inches=0.15)
     return True

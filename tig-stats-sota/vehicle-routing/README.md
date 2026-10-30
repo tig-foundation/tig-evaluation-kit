@@ -60,11 +60,11 @@ coordinates, and the gap is
 gap % = (solution distance - BKS distance) / BKS distance * 100
 ```
 
-Lower is better. The chart's top panel shows the mean gap over the ten
-instances, a whisker of plus or minus one sample standard deviation, and one
-dot per instance. The bottom panel shows the number of vehicles in each final
-solution the same way, with the mean BKS fleet as a dashed line, so it is
-visible at a glance that a negative gap is reached with a larger fleet.
+Lower is better. The chart shows one dot per instance, a diamond at the mean
+over the ten instances and a whisker of plus or minus one sample standard
+deviation. The mean number of vehicles in the final solutions is noted under
+each configuration, next to the BKS mean in the subtitle, so it is visible at
+a glance that a negative gap is reached with a larger fleet.
 
 Two caveats apply when reading the numbers against the literature:
 
