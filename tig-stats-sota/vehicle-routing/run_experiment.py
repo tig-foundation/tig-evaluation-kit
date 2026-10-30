@@ -11,11 +11,11 @@ Steps (each is skipped when its output already exists; see --force-*):
      saving the final solution of each instance under runs/<label>/;
   6. hand over to analyze.py, which writes results/ (CSV, JSON, figure).
 
-The experiment keeps its own cache because hgs_epure (c002_a120) is newer than
-the commit most kit installations are pinned to, and `tig.py source sync` on
-the default cache would move every other dataset you generate afterwards.
-Pass --cache-dir to use another cache, for example the default one after you
-have synced it yourself.
+The experiment keeps its own cache so the monorepo commit it runs at is the
+one recorded in config.json, whatever the default cache is pinned to, and so
+that `tig.py source sync` never has to touch the default cache (which would
+move every other dataset you generate afterwards). Pass --cache-dir to use
+another cache, for example the default one.
 
 Only results/ is meant to be committed. data/ and runs/ are ignored by Git.
 """

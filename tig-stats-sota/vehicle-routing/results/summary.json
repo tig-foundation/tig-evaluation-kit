@@ -1,11 +1,11 @@
 {
-  "generated": "2026-10-30T10:23:58+00:00",
+  "generated": "2026-10-30T10:28:09+00:00",
   "timeout_seconds": 30,
   "workers": 1,
   "repetitions": 1,
   "algorithm_seed": "default_seed",
   "monorepo_commit": "d33946ddeaf89240254b0661aba70859f7868fe0",
-  "note": "hgs_explore5 is hgs_v1 with exploration_level 5 (its shipped default, level 0, stops after one local search); hgs_epure runs with the hyperparameters TIG benchmarkers use on the n_nodes=1000 track",
+  "note": "hgs_explore5 is hgs_v1 with exploration_level 5 (its shipped default, level 0, stops after one local search)",
   "metric": "percentage by which the real-valued Euclidean length of the final solution exceeds the BKS distance",
   "algorithms": {
     "hgs_explore5": {
@@ -47,35 +47,6 @@
       "std_vehicles": 2.582,
       "mean_bks_vehicles": 18.2,
       "mean_solver_wallclock_ms": 29656.1
-    },
-    "hgs_epure": {
-      "id": "c002_a120",
-      "name": "hgs_epure",
-      "hyperparameters": {
-        "exploration_level": 4,
-        "allow_swap3": true,
-        "granularity": 30,
-        "granularity2": 40,
-        "swapstar_capa_filter": 0.5,
-        "max_credit_deterioration": 20,
-        "decomp_target_size": 200,
-        "decomp_nb_phases": 12,
-        "l4_permille": 600
-      },
-      "chart_note": "TIG n_nodes=1000 settings",
-      "instances": 10,
-      "with_solution": 10,
-      "timeouts_with_solution": 10,
-      "failures": 0,
-      "mean_gap_pct": -0.479,
-      "std_gap_pct": 3.394,
-      "median_gap_pct": -0.072,
-      "min_gap_pct": -5.871,
-      "max_gap_pct": 5.196,
-      "mean_vehicles": 23.2,
-      "std_vehicles": 2.974,
-      "mean_bks_vehicles": 18.2,
-      "mean_solver_wallclock_ms": 30007.0
     }
   }
 }

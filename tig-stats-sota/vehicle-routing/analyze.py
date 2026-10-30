@@ -132,7 +132,7 @@ def summarize(config: dict, rows: list[dict], commit: str | None) -> dict:
         "repetitions": config["repetitions"],
         "algorithm_seed": config["algorithm_seed"],
         "monorepo_commit": commit,
-        "note": "hgs_explore5 is hgs_v1 with exploration_level 5 (its shipped default, level 0, stops after one local search); hgs_epure runs with the hyperparameters TIG benchmarkers use on the n_nodes=1000 track",
+        "note": "hgs_explore5 is hgs_v1 with exploration_level 5 (its shipped default, level 0, stops after one local search)",
         "metric": "percentage by which the real-valued Euclidean length of the final solution exceeds the BKS distance",
         "algorithms": {},
     }
