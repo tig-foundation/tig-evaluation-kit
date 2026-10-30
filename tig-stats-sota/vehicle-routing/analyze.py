@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Summarise the RC2 runs as distance gaps to the best-known solutions (BKS).
+"""Summarise each instance set's runs as distance gaps to the best-known solutions (BKS).
 
-Reads runs/<label>/results.jsonl plus the saved final solutions, recomputes
-each solution's real-valued Euclidean length from the dataset coordinates, and
-compares it with bks.json. Writes:
+For every set folder given (default: every subfolder holding a config.json),
+reads <set>/runs/<label>/results.jsonl plus the saved final solutions,
+recomputes each solution's real-valued Euclidean length from the dataset
+coordinates, re-checks its time windows under real-valued travel times, and
+compares it with <set>/bks.json. Writes:
 
-  results/per_instance.csv   one row per algorithm and instance
-  results/summary.json       per-algorithm mean, standard deviation, extremes
-  results/gap_to_bks.png     chart: one dot per instance for the gap to the
-                             BKS distance, a marker at the mean with a
-                             +/- 1 standard deviation whisker, and the mean
-                             fleet size noted under each configuration
+  <set>/results/per_instance.csv   one row per algorithm and instance
+  <set>/results/summary.json       per-algorithm mean, standard deviation, extremes
+  <set>/results/gap_to_bks.png     chart: one dot per instance for the gap to the
+                                   BKS distance, a marker at the mean with a
+                                   +/- 1 standard deviation whisker, and the mean
+                                   fleet size noted under each configuration
 
-The chart needs matplotlib; without it the CSV and JSON are still written.
+With more than one set it also prints a cross-set summary table. The chart
+needs matplotlib; without it the CSV and JSON are still written.
 """
 
 from __future__ import annotations
@@ -30,11 +33,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-CONFIG_PATH = HERE / "config.json"
-BKS_PATH = HERE / "bks.json"
-DATASET = HERE / "data" / "dataset"
-RUNS = HERE / "runs"
-RESULTS = HERE / "results"
+EXPERIMENT_PATH = HERE / "experiment.json"
 
 # Reference data-viz palette (light surface).
 SURFACE = "#fcfcfb"
@@ -42,6 +41,21 @@ TEXT_PRIMARY = "#0b0b0b"
 TEXT_SECONDARY = "#52514e"
 GRID = "#e6e5e1"
 SERIES = "#2a78d6"
+
+
+def load_json(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def discover_sets() -> list[Path]:
+    return sorted(path.parent for path in HERE.glob("*/config.json"))
+
+
+def resolve_set(name: str) -> Path:
+    for candidate in (Path(name), HERE / name):
+        if (candidate / "config.json").is_file():
+            return candidate.resolve()
+    raise SystemExit(f"{name} is not an instance set: expected a folder holding config.json under {HERE}")
 
 
 def decode_routes(encoded: str) -> list[list[int]]:
@@ -61,35 +75,63 @@ def decode_routes(encoded: str) -> list[list[int]]:
     return routes
 
 
+def _distance(positions: list[list[int]], left: int, right: int) -> float:
+    return math.hypot(positions[left][0] - positions[right][0], positions[left][1] - positions[right][1])
+
+
 def euclidean_length(positions: list[list[int]], routes: list[list[int]]) -> float:
-    total = 0.0
+    return sum(_distance(positions, left, right) for route in routes for left, right in zip(route, route[1:]))
+
+
+def late_arrivals(instance: dict, routes: list[list[int]]) -> tuple[int, float]:
+    """Count arrivals after the due time when travel times are real-valued.
+
+    Follows the schedule of TIG's verifier (wait for the ready time, then add the
+    service time), but with Euclidean instead of integer-rounded travel times.
+    TIG accepts a route on the rounded times, so this is where a solution can be
+    slightly infeasible against the literature's real-valued windows. Returns the
+    number of late arrivals (depot returns included) and the largest lateness.
+    """
+    positions, ready, due, service = instance["positions"], instance["ready_times"], instance["due_times"], instance["service_time"]
+    count, worst = 0, 0.0
     for route in routes:
-        for left, right in zip(route, route[1:]):
-            total += math.hypot(positions[left][0] - positions[right][0], positions[left][1] - positions[right][1])
-    return total
+        time = 0.0
+        for previous, node in zip(route, route[1:]):
+            time += _distance(positions, previous, node)
+            if time > due[node] + 1e-9:
+                count += 1
+                worst = max(worst, time - due[node])
+            if node != 0:
+                time = max(time, ready[node]) + service
+    return count, worst
 
 
-def load_instances() -> tuple[dict[str, dict], str | None]:
-    manifest = json.loads((DATASET / "dataset.json").read_text(encoding="utf-8"))
+def load_instances(dataset: Path) -> tuple[dict[str, dict], str | None]:
+    manifest = load_json(dataset / "dataset.json")
     instances = {}
     for entry in manifest["instances"]:
-        document = json.loads((DATASET / entry["path"]).read_text(encoding="utf-8"))
+        challenge = load_json(dataset / entry["path"])["challenge"]
         instances[entry["id"]] = {
             "name": Path(entry["source"]).stem.lower(),
-            "positions": document["challenge"]["node_positions"],
-            "fleet_size": document["challenge"]["fleet_size"],
+            "positions": challenge["node_positions"],
+            "ready_times": challenge["ready_times"],
+            "due_times": challenge["due_times"],
+            "service_time": challenge["service_time"],
         }
     return instances, manifest.get("monorepo_commit")
 
 
-def collect(config: dict, bks: dict) -> tuple[list[dict], str | None]:
-    instances, commit = load_instances()
+def collect(set_dir: Path, experiment: dict, bks: dict) -> tuple[list[dict], str | None]:
+    dataset = set_dir / "data" / "dataset"
+    if not (dataset / "dataset.json").exists():
+        return [], None
+    instances, commit = load_instances(dataset)
     rows = []
-    for algorithm in config["algorithms"]:
-        run_dir = RUNS / algorithm["label"]
+    for algorithm in experiment["algorithms"]:
+        run_dir = set_dir / "runs" / algorithm["label"]
         results = run_dir / "results.jsonl"
         if not results.exists():
-            print(f"warning: no results for {algorithm['label']} ({results})", file=sys.stderr)
+            print(f"warning: no results for {set_dir.name}/{algorithm['label']} ({results})", file=sys.stderr)
             continue
         for line in results.read_text(encoding="utf-8").splitlines():
             if not line.strip():
@@ -111,6 +153,8 @@ def collect(config: dict, bks: dict) -> tuple[list[dict], str | None]:
                 "distance": None,
                 "vehicles": None,
                 "gap_pct": None,
+                "late_arrivals": None,
+                "max_lateness": None,
                 "solver_wallclock_ms": record.get("solver_wallclock_ms"),
                 "error": (record.get("error") or {}).get("message") if record.get("error") else None,
             }
@@ -119,29 +163,35 @@ def collect(config: dict, bks: dict) -> tuple[list[dict], str | None]:
                 row["distance"] = round(euclidean_length(instance["positions"], routes), 2)
                 row["vehicles"] = len(routes)
                 row["gap_pct"] = round((row["distance"] - best["distance"]) / best["distance"] * 100, 3)
+                late, worst = late_arrivals(instance, routes)
+                row["late_arrivals"] = late
+                row["max_lateness"] = round(worst, 3)
             rows.append(row)
     rows.sort(key=lambda row: (row["algorithm"], int(row["instance"].rsplit("_", 1)[1]), row["repetition"]))
     return rows, commit
 
 
-def summarize(config: dict, rows: list[dict], commit: str | None) -> dict:
+def summarize(set_dir: Path, experiment: dict, config: dict, rows: list[dict], commit: str | None) -> dict:
     summary = {
+        "set": set_dir.name,
+        "title": config["title"],
         "generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
-        "timeout_seconds": config["timeout_seconds"],
-        "workers": config["workers"],
-        "repetitions": config["repetitions"],
-        "algorithm_seed": config["algorithm_seed"],
+        "timeout_seconds": experiment["timeout_seconds"],
+        "workers": experiment["workers"],
+        "repetitions": experiment["repetitions"],
+        "algorithm_seed": experiment["algorithm_seed"],
         "monorepo_commit": commit,
-        "note": "hgs_explore5 is hgs_v1 with exploration_level 5 (its shipped default, level 0, stops after one local search)",
+        "note": experiment.get("note"),
         "metric": "percentage by which the real-valued Euclidean length of the final solution exceeds the BKS distance",
         "algorithms": {},
     }
-    for algorithm in config["algorithms"]:
+    for algorithm in experiment["algorithms"]:
         mine = [row for row in rows if row["algorithm"] == algorithm["label"]]
+        if not mine:
+            continue
         gaps = [row["gap_pct"] for row in mine if row["gap_pct"] is not None]
         vehicles = [row["vehicles"] for row in mine if row["vehicles"] is not None]
-        if not gaps:
-            continue
+        times = [row["solver_wallclock_ms"] for row in mine if row["solver_wallclock_ms"] is not None]
         summary["algorithms"][algorithm["label"]] = {
             "id": algorithm["id"],
             "name": algorithm["name"],
@@ -151,26 +201,29 @@ def summarize(config: dict, rows: list[dict], commit: str | None) -> dict:
             "with_solution": len(gaps),
             "timeouts_with_solution": sum(1 for row in mine if row["status"] == "timeout_with_solution"),
             "failures": sum(1 for row in mine if row["gap_pct"] is None),
-            "mean_gap_pct": round(statistics.mean(gaps), 3),
-            "std_gap_pct": round(statistics.stdev(gaps), 3) if len(gaps) > 1 else 0.0,
-            "median_gap_pct": round(statistics.median(gaps), 3),
-            "min_gap_pct": round(min(gaps), 3),
-            "max_gap_pct": round(max(gaps), 3),
-            "mean_vehicles": round(statistics.mean(vehicles), 2),
-            "std_vehicles": round(statistics.stdev(vehicles), 3) if len(vehicles) > 1 else 0.0,
-            "mean_bks_vehicles": round(statistics.mean(row["bks_vehicles"] for row in mine), 2),
-            "mean_solver_wallclock_ms": round(statistics.mean(row["solver_wallclock_ms"] for row in mine if row["solver_wallclock_ms"] is not None), 1),
+            "mean_gap_pct": round(statistics.mean(gaps), 3) if gaps else None,
+            "std_gap_pct": round(statistics.stdev(gaps), 3) if len(gaps) > 1 else None,
+            "median_gap_pct": round(statistics.median(gaps), 3) if gaps else None,
+            "min_gap_pct": min(gaps) if gaps else None,
+            "max_gap_pct": max(gaps) if gaps else None,
+            "mean_vehicles": round(statistics.mean(vehicles), 1) if vehicles else None,
+            "std_vehicles": round(statistics.stdev(vehicles), 3) if len(vehicles) > 1 else None,
+            "mean_bks_vehicles": round(statistics.mean(row["bks_vehicles"] for row in mine), 1),
+            "instances_with_late_arrivals": sum(1 for row in mine if row["late_arrivals"]),
+            "max_lateness": max((row["max_lateness"] or 0.0) for row in mine),
+            "mean_solver_wallclock_ms": round(statistics.mean(times), 1) if times else None,
         }
     return summary
 
 
-def write_outputs(rows: list[dict], summary: dict) -> None:
-    RESULTS.mkdir(exist_ok=True)
-    with (RESULTS / "per_instance.csv").open("w", newline="", encoding="utf-8") as handle:
+def write_outputs(set_dir: Path, rows: list[dict], summary: dict) -> None:
+    results = set_dir / "results"
+    results.mkdir(exist_ok=True)
+    with (results / "per_instance.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
-    (RESULTS / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    (results / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
 
 def _style_axis(ax) -> None:
@@ -184,7 +237,7 @@ def _style_axis(ax) -> None:
     ax.tick_params(colors=TEXT_SECONDARY, length=0)
 
 
-def plot(summary: dict, rows: list[dict]) -> bool:
+def plot(set_dir: Path, summary: dict, rows: list[dict]) -> bool:
     try:
         import matplotlib
 
@@ -208,7 +261,7 @@ def plot(summary: dict, rows: list[dict]) -> bool:
     n = max(entry["instances"] for entry in entries)
     bks_vehicles = statistics.mean(row["bks_vehicles"] for row in rows)
     means = [entry["mean_gap_pct"] for entry in entries]
-    stds = [entry["std_gap_pct"] for entry in entries]
+    stds = [entry["std_gap_pct"] or 0.0 for entry in entries]
 
     fig, ax = plt.subplots(figsize=(8.0, 5.6), dpi=150)
     fig.patch.set_facecolor(SURFACE)
@@ -237,7 +290,7 @@ def plot(summary: dict, rows: list[dict]) -> bool:
     ax.tick_params(axis="x", pad=24)
     ax.set_ylabel("Distance above best-known solution (%)", color=TEXT_PRIMARY)
     ax.set_title(
-        f"Homberger-Gehring 1000-customer RC2: gap to BKS, {summary['timeout_seconds']} s per instance",
+        f"{summary['title']}: gap to BKS, {summary['timeout_seconds']} s per instance",
         loc="left", fontsize=11, color=TEXT_PRIMARY, pad=32,
     )
     ax.text(0, 1.02,
@@ -245,11 +298,13 @@ def plot(summary: dict, rows: list[dict]) -> bool:
             f"BKS fleet mean {bks_vehicles:.1f} vehicles; the BKS minimises vehicles first, TIG minimises distance only",
             transform=ax.transAxes, fontsize=8.5, color=TEXT_SECONDARY, va="bottom", linespacing=1.5)
 
-    fig.savefig(RESULTS / "gap_to_bks.png", facecolor=SURFACE, bbox_inches="tight", pad_inches=0.15)
+    fig.savefig(set_dir / "results" / "gap_to_bks.png", facecolor=SURFACE, bbox_inches="tight", pad_inches=0.15)
+    plt.close(fig)
     return True
 
 
 def markdown_table(summary: dict, rows: list[dict]) -> str:
+    """Per-instance table; * marks a timeout, † a late arrival under real-valued travel times."""
     labels = list(summary["algorithms"])
     lines = ["| Instance | BKS vehicles | BKS distance | " + " | ".join(f"{label} gap | {label} vehicles" for label in labels) + " |",
              "|---|---|---|" + "---|---|" * len(labels)]
@@ -261,7 +316,7 @@ def markdown_table(summary: dict, rows: list[dict]) -> str:
             if row is None or row["gap_pct"] is None:
                 cells += ["-", "-"]
             else:
-                flag = "*" if row["status"] == "timeout_with_solution" else ""
+                flag = ("*" if row["status"] == "timeout_with_solution" else "") + ("†" if row["late_arrivals"] else "")
                 cells += [f"{row['gap_pct']:+.2f}%{flag}", str(row["vehicles"])]
         sample = next(r for r in rows if r["instance"] == name)
         lines.append(f"| {name} | {sample['bks_vehicles']} | {sample['bks_distance']:.2f} | " + " | ".join(cells) + " |")
@@ -274,22 +329,54 @@ def markdown_table(summary: dict, rows: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def cross_set_table(summaries: list[dict]) -> str:
+    labels = list(summaries[0]["algorithms"])
+    lines = ["| Set | Instances | BKS vehicles | " + " | ".join(f"{label} gap | {label} vehicles" for label in labels) + " |",
+             "|---|---|---|" + "---|---|" * len(labels)]
+    for summary in summaries:
+        cells = []
+        for label in labels:
+            s = summary["algorithms"].get(label)
+            if s is None or s["mean_gap_pct"] is None:
+                cells += ["-", "-"]
+            else:
+                cells += [f"{s['mean_gap_pct']:+.2f}% ± {s['std_gap_pct']:.2f}", f"{s['mean_vehicles']:.1f}"]
+        first = next(iter(summary["algorithms"].values()))
+        lines.append(f"| [{summary['title']}]({summary['set']}/README.md) | {first['instances']} | {first['mean_bks_vehicles']:.1f} | " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
+def analyze_set(set_dir: Path, experiment: dict, make_plot: bool) -> dict | None:
+    config = load_json(set_dir / "config.json")
+    bks = load_json(set_dir / "bks.json")
+    rows, commit = collect(set_dir, experiment, bks)
+    if not rows:
+        print(f"warning: no results under {set_dir / 'runs'}; run run_experiment.py {set_dir.name} first", file=sys.stderr)
+        return None
+    summary = summarize(set_dir, experiment, config, rows, commit)
+    write_outputs(set_dir, rows, summary)
+    print(f"## {config['title']} ({set_dir.name})\n")
+    print(markdown_table(summary, rows))
+    if make_plot and plot(set_dir, summary, rows):
+        print(f"chart written to {set_dir / 'results' / 'gap_to_bks.png'}")
+    print(f"tables written to {set_dir / 'results'}\n")
+    return summary
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("sets", nargs="*", metavar="SET",
+                        help="instance-set folders to analyse (default: every subfolder holding a config.json)")
     parser.add_argument("--no-plot", action="store_true", help="write tables only")
     options = parser.parse_args(argv)
-    config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    bks = json.loads(BKS_PATH.read_text(encoding="utf-8"))
-    rows, commit = collect(config, bks)
-    if not rows:
-        raise SystemExit("No results found under runs/; run run_experiment.py first")
-    summary = summarize(config, rows, commit)
-    write_outputs(rows, summary)
-    print(markdown_table(summary, rows))
-    if not options.no_plot:
-        if plot(summary, rows):
-            print(f"chart written to {RESULTS / 'gap_to_bks.png'}")
-    print(f"tables written to {RESULTS}")
+    experiment = load_json(EXPERIMENT_PATH)
+    sets = [resolve_set(name) for name in options.sets] or discover_sets()
+    summaries = [summary for summary in (analyze_set(set_dir, experiment, not options.no_plot) for set_dir in sets) if summary]
+    if not summaries:
+        raise SystemExit("No results found; run run_experiment.py first")
+    if len(summaries) > 1:
+        print("## All sets\n")
+        print(cross_set_table(summaries))
     return 0
 
 

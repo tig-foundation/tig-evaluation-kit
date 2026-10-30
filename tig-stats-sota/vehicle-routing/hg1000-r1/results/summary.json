@@ -1,0 +1,58 @@
+{
+  "set": "hg1000-r1",
+  "title": "Homberger-Gehring 1000-customer R1",
+  "generated": "2026-10-30T13:22:11+00:00",
+  "timeout_seconds": 30,
+  "workers": 1,
+  "repetitions": 1,
+  "algorithm_seed": "default_seed",
+  "monorepo_commit": "d33946ddeaf89240254b0661aba70859f7868fe0",
+  "note": "hgs_explore5 is hgs_v1 with exploration_level 5 (its shipped default, level 0, stops after one local search)",
+  "metric": "percentage by which the real-valued Euclidean length of the final solution exceeds the BKS distance",
+  "algorithms": {
+    "hgs_explore5": {
+      "id": "c002_a089",
+      "name": "hgs_v1",
+      "hyperparameters": {
+        "exploration_level": 5
+      },
+      "chart_note": "exploration_level=5",
+      "instances": 10,
+      "with_solution": 10,
+      "timeouts_with_solution": 10,
+      "failures": 0,
+      "mean_gap_pct": 6.345,
+      "std_gap_pct": 0.884,
+      "median_gap_pct": 6.28,
+      "min_gap_pct": 4.943,
+      "max_gap_pct": 7.54,
+      "mean_vehicles": 94.4,
+      "std_vehicles": 1.647,
+      "mean_bks_vehicles": 91.9,
+      "instances_with_late_arrivals": 8,
+      "max_lateness": 0.948,
+      "mean_solver_wallclock_ms": 30007.6
+    },
+    "hgs_advance": {
+      "id": "c002_a110",
+      "name": "hgs_advance",
+      "hyperparameters": null,
+      "chart_note": "as shipped (level 4)",
+      "instances": 10,
+      "with_solution": 10,
+      "timeouts_with_solution": 2,
+      "failures": 0,
+      "mean_gap_pct": 1.097,
+      "std_gap_pct": 0.534,
+      "median_gap_pct": 1.226,
+      "min_gap_pct": -0.176,
+      "max_gap_pct": 1.725,
+      "mean_vehicles": 92.4,
+      "std_vehicles": 0.699,
+      "mean_bks_vehicles": 91.9,
+      "instances_with_late_arrivals": 8,
+      "max_lateness": 1.005,
+      "mean_solver_wallclock_ms": 28157.7
+    }
+  }
+}

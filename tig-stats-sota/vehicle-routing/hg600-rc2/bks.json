@@ -1,0 +1,59 @@
+{
+  "source": {
+    "url": "https://www.sintef.no/projectweb/top/vrptw/600-customers/",
+    "retrieved": "2026-10-30",
+    "note": "Best-known solutions as listed by SINTEF; distances are real-valued Euclidean, objective is vehicles first then distance."
+  },
+  "instances": {
+    "rc2_6_1": {
+      "vehicles": 14,
+      "distance": 13324.93,
+      "reference": "BC4"
+    },
+    "rc2_6_2": {
+      "vehicles": 12,
+      "distance": 11555.51,
+      "reference": "BC4"
+    },
+    "rc2_6_3": {
+      "vehicles": 11,
+      "distance": 9438.52,
+      "reference": "SCR"
+    },
+    "rc2_6_4": {
+      "vehicles": 11,
+      "distance": 7057.94,
+      "reference": "CAINIAO"
+    },
+    "rc2_6_5": {
+      "vehicles": 11,
+      "distance": 12909.07,
+      "reference": "SCR"
+    },
+    "rc2_6_6": {
+      "vehicles": 11,
+      "distance": 11913.11,
+      "reference": "CAINIAO"
+    },
+    "rc2_6_7": {
+      "vehicles": 11,
+      "distance": 10711.85,
+      "reference": "SCR"
+    },
+    "rc2_6_8": {
+      "vehicles": 11,
+      "distance": 9990.4,
+      "reference": "CAINIAO"
+    },
+    "rc2_6_9": {
+      "vehicles": 11,
+      "distance": 9574.99,
+      "reference": "CAINIAO"
+    },
+    "rc2_6_10": {
+      "vehicles": 11,
+      "distance": 9058.9,
+      "reference": "SCR"
+    }
+  }
+}

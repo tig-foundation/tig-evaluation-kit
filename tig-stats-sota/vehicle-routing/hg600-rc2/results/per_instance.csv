@@ -1,0 +1,21 @@
+algorithm,algorithm_id,algorithm_name,hyperparameters,instance,repetition,status,bks_vehicles,bks_distance,tig_objective,distance,vehicles,gap_pct,late_arrivals,max_lateness,solver_wallclock_ms,error
+hgs_advance,c002_a110,hgs_advance,,rc2_6_1,0,solution,14,13324.93,12037,12082.67,22,-9.323,2,0.385,20180.653986,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_2,0,solution,12,11555.51,10331,10387.25,19,-10.11,2,0.612,27015.579942999997,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_3,0,solution,11,9438.52,8898,8962.64,16,-5.042,0,0.0,22193.008778,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_4,0,solution,11,7057.94,6999,7059.9,12,0.028,1,0.597,24878.534571,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_5,0,solution,11,12909.07,11120,11166.16,19,-13.501,2,1.255,22138.521414,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_6,0,solution,11,11913.11,10971,11014.49,17,-7.543,2,1.747,18907.085435999998,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_7,0,solution,11,10711.85,10305,10350.91,15,-3.37,6,1.954,20382.92758,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_8,0,solution,11,9990.4,9811,9863.61,14,-1.269,1,0.733,25916.46571,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_9,0,solution,11,9574.99,9517,9565.62,13,-0.098,0,0.0,21960.543316,
+hgs_advance,c002_a110,hgs_advance,,rc2_6_10,0,solution,11,9058.9,9023,9078.97,12,0.222,0,0.0,29576.574139,
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_1,0,timeout_with_solution,14,13324.93,12283,12325.58,25,-7.5,2,0.385,30003.56644700514,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_2,0,timeout_with_solution,12,11555.51,10798,10851.51,20,-6.092,0,0.0,30003.627012018114,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_3,0,timeout_with_solution,11,9438.52,9244,9301.21,18,-1.455,1,0.083,30003.638101974502,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_4,0,timeout_with_solution,11,7057.94,7285,7345.4,13,4.073,1,0.597,30003.960486035794,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_5,0,timeout_with_solution,11,12909.07,11620,11662.3,21,-9.658,1,0.47,30003.583587007597,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_6,0,timeout_with_solution,11,11913.11,11388,11430.13,17,-4.054,2,0.58,30003.523332008626,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_7,0,timeout_with_solution,11,10711.85,10812,10864.74,18,1.427,2,1.189,30003.500275022816,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_8,0,timeout_with_solution,11,9990.4,10196,10249.35,16,2.592,0,0.0,30003.542730002664,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_9,0,timeout_with_solution,11,9574.99,9858,9911.34,17,3.513,0,0.0,30003.563573001884,Solver reached the 30 second timeout
+hgs_explore5,c002_a089,hgs_v1,"{""exploration_level"": 5}",rc2_6_10,0,timeout_with_solution,11,9058.9,9247,9301.16,13,2.674,0,0.0,30003.719300031662,Solver reached the 30 second timeout

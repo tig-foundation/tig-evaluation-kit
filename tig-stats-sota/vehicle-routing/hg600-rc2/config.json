@@ -1,0 +1,23 @@
+{
+  "title": "Homberger-Gehring 600-customer RC2",
+  "dataset_name": "homberger-gehring-600-rc2",
+  "description": "The RC2 class at 600 customers, the smallest size in TIG's active vehicle-routing tracks: the best-known solutions use 11 to 14 vehicles with 43 or more customers per route.",
+  "collection": {
+    "name": "Homberger-Gehring 600-customer VRPTW benchmark, class RC2",
+    "url": "https://www.sintef.no/globalassets/project/top/vrptw/homberger/600/homberger_600_customer_instances.zip",
+    "zip_sha256": "df4c40d2191f7e854c46f5422a89055bae93fb1f880692181ee8ee7bf629636b",
+    "members": [
+      "RC2_6_1.TXT",
+      "RC2_6_2.TXT",
+      "RC2_6_3.TXT",
+      "RC2_6_4.TXT",
+      "RC2_6_5.TXT",
+      "RC2_6_6.TXT",
+      "RC2_6_7.TXT",
+      "RC2_6_8.TXT",
+      "RC2_6_9.TXT",
+      "RC2_6_10.TXT"
+    ],
+    "format": "solomon-vrptw"
+  }
+}

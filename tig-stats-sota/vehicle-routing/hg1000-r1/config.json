@@ -1,0 +1,23 @@
+{
+  "title": "Homberger-Gehring 1000-customer R1",
+  "dataset_name": "homberger-gehring-1000-r1",
+  "description": "Uniformly random customers, short scheduling horizon, tight time windows and vehicle capacity 200: the best-known solutions use 91 to 100 vehicles with about 10 customers per route, so the fleet is fixed by the constraints rather than by the objective.",
+  "collection": {
+    "name": "Homberger-Gehring 1000-customer VRPTW benchmark, class R1",
+    "url": "https://www.sintef.no/globalassets/project/top/vrptw/homberger/1000/homberger_1000_customer_instances.zip",
+    "zip_sha256": "2e96845ee870ef21f833a216a79866e812232d3d922db3e14c30790f06780a81",
+    "members": [
+      "R1_10_1.TXT",
+      "R1_10_2.TXT",
+      "R1_10_3.TXT",
+      "R1_10_4.TXT",
+      "R1_10_5.TXT",
+      "R1_10_6.TXT",
+      "R1_10_7.TXT",
+      "R1_10_8.TXT",
+      "R1_10_9.TXT",
+      "R1_10_10.TXT"
+    ],
+    "format": "solomon-vrptw"
+  }
+}

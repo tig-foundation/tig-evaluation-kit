@@ -1,0 +1,59 @@
+{
+  "source": {
+    "url": "https://www.sintef.no/projectweb/top/vrptw/1000-customers/",
+    "retrieved": "2026-10-30",
+    "note": "Best-known solutions as listed by SINTEF; distances are real-valued Euclidean, objective is vehicles first then distance."
+  },
+  "instances": {
+    "r1_10_1": {
+      "vehicles": 100,
+      "distance": 53380.18,
+      "reference": "SCR"
+    },
+    "r1_10_2": {
+      "vehicles": 91,
+      "distance": 48232.67,
+      "reference": "NVIDIA"
+    },
+    "r1_10_3": {
+      "vehicles": 91,
+      "distance": 44689.19,
+      "reference": "TL"
+    },
+    "r1_10_4": {
+      "vehicles": 91,
+      "distance": 42463.74,
+      "reference": "SCR"
+    },
+    "r1_10_5": {
+      "vehicles": 91,
+      "distance": 50442.31,
+      "reference": "ISCT"
+    },
+    "r1_10_6": {
+      "vehicles": 91,
+      "distance": 46928.44,
+      "reference": "ISCT,TLindependently"
+    },
+    "r1_10_7": {
+      "vehicles": 91,
+      "distance": 43969.48,
+      "reference": "ISCT"
+    },
+    "r1_10_8": {
+      "vehicles": 91,
+      "distance": 42288.04,
+      "reference": "ISCT"
+    },
+    "r1_10_9": {
+      "vehicles": 91,
+      "distance": 49186.22,
+      "reference": "ISCT"
+    },
+    "r1_10_10": {
+      "vehicles": 91,
+      "distance": 47403.83,
+      "reference": "ISCT"
+    }
+  }
+}
